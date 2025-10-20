@@ -1,12 +1,37 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "clunite",
+  "version": "1.0.0",
+  "description": "Campus Event & Club Management Platform",
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/clunite.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/clunite/issues"
+  },
+  "homepage": "https://github.com/yourusername/clunite#readme",
+  "keywords": [
+    "campus",
+    "events",
+    "clubs",
+    "management",
+    "nextjs",
+    "supabase",
+    "typescript"
+  ],
   "private": true,
   "scripts": {
-    "build": "next build",
     "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "next lint",
-    "start": "next start"
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
