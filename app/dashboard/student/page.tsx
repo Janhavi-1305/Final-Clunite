@@ -37,7 +37,7 @@ export default function StudentDashboard() {
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
       </div>
     )
   }
@@ -47,7 +47,7 @@ export default function StudentDashboard() {
     router.push('/login')
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
       </div>
     )
   }
@@ -153,18 +153,17 @@ export default function StudentDashboard() {
   ]
 
   return (
-    <div className="space-y-8 bg-gray-50 min-h-screen p-6">
+    <div className="space-y-8 bg-[#FBF7F4] min-h-screen p-6">
       {/* Welcome Section */}
-  <div className="bg-gradient-to-r from-teal-400 to-indigo-600 rounded-2xl p-8 text-white relative overflow-hidden">
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-8 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
         <div className="relative">
-          <div className="flex items-center mb-4">
-            <h1 className="text-3xl font-bold">Welcome back, {user.name}! </h1>
-            <span className="text-2xl ml-2">👋</span>
+          <div className="mb-4">
+            <h1 className="text-3xl font-bold">Welcome back, {user.name}!</h1>
           </div>
           <p className="text-white/90 text-lg">Ready to discover amazing events at {user.college}?</p>
-          <div className="mt-6 flex items-center space-x-4">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <Badge className="bg-white/20 text-white border-white/30 px-3 py-1">
               <Sparkles className="h-4 w-4 mr-1" />5 new recommendations
             </Badge>
@@ -178,18 +177,18 @@ export default function StudentDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white">
+          <Card key={index} className="border border-gray-200 shadow-sm hover:shadow-md hover:border-orange-500 transition-all duration-300 bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-2xl bg-gradient-to-r ${stat.color}`}>
+                <div className={`p-3 rounded-lg bg-gradient-to-r ${stat.color}`}>
                   <stat.icon className="h-6 w-6 text-white" />
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-sm text-gray-500">{stat.title}</p>
+                  <p className="text-sm text-gray-600">{stat.title}</p>
                 </div>
               </div>
-              <div className="flex items-center text-sm text-green-600">
+              <div className="flex items-center text-sm text-orange-600">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 {stat.change}
               </div>
@@ -201,10 +200,10 @@ export default function StudentDashboard() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Recommended Events */}
         <div className="lg:col-span-2">
-          <Card className="border-0 shadow-lg bg-white">
+          <Card className="border border-gray-200 shadow-sm bg-white">
             <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-xl">
-                <Star className="h-6 w-6 mr-3 text-yellow-500" />
+              <CardTitle className="flex items-center text-xl font-bold text-gray-900">
+                <Star className="h-6 w-6 mr-3 text-orange-500" />
                 Recommended for You
               </CardTitle>
               <CardDescription className="text-gray-600">
@@ -215,16 +214,16 @@ export default function StudentDashboard() {
               {recommendedEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="group border border-gray-100 rounded-xl p-6 hover:shadow-md transition-all duration-300 bg-gradient-to-r from-gray-50 to-white"
+                  className="group border border-gray-200 rounded-xl p-6 hover:shadow-md hover:border-orange-500 transition-all duration-300 bg-white"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-indigo-600 transition-colors">
+                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-orange-600 transition-colors">
                         {event.title}
                       </h3>
                       <p className="text-gray-600 font-medium">by {event.club}</p>
                     </div>
-                    <div className="flex items-center text-sm text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full">
+                    <div className="flex items-center text-sm text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
                       <Star className="h-4 w-4 mr-1 fill-current" />
                       {event.rating}
                     </div>
@@ -254,7 +253,7 @@ export default function StudentDashboard() {
                       ))}
                     </div>
                     <Button
-                      className={`bg-gradient-to-r ${event.gradient} text-white hover:shadow-lg transition-all duration-300`}
+                      className="bg-orange-500 hover:bg-orange-600 text-white hover:shadow-lg transition-all duration-300"
                     >
                       Register Now
                     </Button>
@@ -267,25 +266,25 @@ export default function StudentDashboard() {
 
         {/* Quick Actions */}
         <div className="space-y-6">
-          <Card className="border-0 shadow-lg bg-white">
+          <Card className="border border-gray-200 shadow-sm bg-white">
             <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardTitle className="text-lg font-bold text-gray-900">Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Button className="w-full justify-start bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg transition-all duration-300">
+            <CardContent className="space-y-3">
+              <Button className="w-full justify-start bg-orange-500 hover:bg-orange-600 text-white hover:shadow-md transition-all duration-300">
                 <QrCode className="h-5 w-5 mr-3" />
                 Scan QR Code
               </Button>
               <Button
                 variant="outline"
-                className="w-full justify-start border-2 hover:border-purple-500 hover:text-purple-600 transition-all duration-300 bg-transparent"
+                className="w-full justify-start border-2 border-gray-200 hover:border-orange-500 hover:text-orange-600 transition-all duration-300 bg-white"
               >
                 <Award className="h-5 w-5 mr-3" />
                 View Certificates
               </Button>
               <Button
                 variant="outline"
-                className="w-full justify-start border-2 hover:border-green-500 hover:text-green-600 transition-all duration-300 bg-transparent"
+                className="w-full justify-start border-2 border-gray-200 hover:border-orange-500 hover:text-orange-600 transition-all duration-300 bg-white"
               >
                 <Calendar className="h-5 w-5 mr-3" />
                 My Events
@@ -293,15 +292,15 @@ export default function StudentDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-yellow-50 border-orange-200">
+          <Card className="border border-orange-200 shadow-sm bg-gradient-to-br from-orange-50 to-orange-100">
             <CardContent className="p-6">
               <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Target className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="font-bold text-lg text-gray-900 mb-2">Achievement Unlocked!</h3>
                 <p className="text-gray-600 text-sm mb-4">You've attended 15 events this semester</p>
-                <Button size="sm" className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white">
+                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                   View Progress
                 </Button>
               </div>
