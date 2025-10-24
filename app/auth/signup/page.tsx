@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
-import { Loader2, Mail, Lock, User, Building2, ArrowRight, AlertCircle } from "lucide-react"
+import { Loader2, Mail, Lock, User, Building2, ArrowRight, AlertCircle, GraduationCap, BookOpen } from "lucide-react"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -21,7 +21,8 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
     fullName: "",
-    college: ""
+    college: "",
+    branch: ""
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +63,8 @@ export default function SignupPage() {
         formData.email,
         formData.password,
         formData.fullName,
-        formData.college
+        formData.college,
+        formData.branch || undefined
       )
 
       if (error) {
@@ -88,26 +90,25 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-indigo-50/20 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-[#FBF7F4] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
-        <Card className="border-0 shadow-2xl">
-          <CardHeader className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl mb-4 mx-auto">
-              <User className="h-8 w-8 text-white" />
+        <Card className="border border-gray-200 shadow-lg bg-white">
+          <CardHeader className="text-center space-y-3 pb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-lg mb-2 mx-auto">
+              <span className="text-white font-bold text-2xl">C</span>
             </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Create Account
+            <CardTitle className="text-3xl font-bold text-gray-900">
+              Join Clunite
             </CardTitle>
-            <CardDescription className="text-base">
-              Join Clunite and start managing campus events
+            <CardDescription className="text-base text-gray-600">
+              Create your account and start exploring campus events
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-8 pb-8">
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Full Name */}
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-indigo-600" />
+                <Label htmlFor="fullName" className="text-sm font-semibold text-gray-900">
                   Full Name *
                 </Label>
                 <Input
@@ -117,15 +118,14 @@ export default function SignupPage() {
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
-                  className="h-12 border-2 focus:border-indigo-500"
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
                 />
               </div>
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-indigo-600" />
-                  Email *
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-900">
+                  Email Address *
                 </Label>
                 <Input
                   id="email"
@@ -134,14 +134,13 @@ export default function SignupPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="h-12 border-2 focus:border-indigo-500"
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
                 />
               </div>
 
               {/* College */}
               <div className="space-y-2">
-                <Label htmlFor="college" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-indigo-600" />
+                <Label htmlFor="college" className="text-sm font-semibold text-gray-900">
                   College/University *
                 </Label>
                 <Input
@@ -151,14 +150,31 @@ export default function SignupPage() {
                   value={formData.college}
                   onChange={(e) => setFormData({ ...formData, college: e.target.value })}
                   required
-                  className="h-12 border-2 focus:border-indigo-500"
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
                 />
+              </div>
+
+              {/* Branch */}
+              <div className="space-y-2">
+                <Label htmlFor="branch" className="text-sm font-semibold text-gray-900">
+                  Branch/Major
+                </Label>
+                <Input
+                  id="branch"
+                  type="text"
+                  placeholder="Computer Science, Mechanical, etc."
+                  value={formData.branch}
+                  onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
+                />
+                <p className="text-xs text-gray-500">
+                  Optional - helps personalize your experience
+                </p>
               </div>
 
               {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-indigo-600" />
+                <Label htmlFor="password" className="text-sm font-semibold text-gray-900">
                   Password *
                 </Label>
                 <Input
@@ -169,14 +185,13 @@ export default function SignupPage() {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                   minLength={8}
-                  className="h-12 border-2 focus:border-indigo-500"
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
                 />
               </div>
 
               {/* Confirm Password */}
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-indigo-600" />
+                <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-900">
                   Confirm Password *
                 </Label>
                 <Input
@@ -187,7 +202,7 @@ export default function SignupPage() {
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   required
                   minLength={8}
-                  className="h-12 border-2 focus:border-indigo-500"
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
                 />
               </div>
 
@@ -195,7 +210,7 @@ export default function SignupPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-base font-semibold rounded-lg transition-colors mt-6"
               >
                 {loading ? (
                   <>
@@ -205,18 +220,27 @@ export default function SignupPage() {
                 ) : (
                   <>
                     Create Account
-                    <ArrowRight className="ml-2 h-5 w-5" />
                   </>
                 )}
               </Button>
 
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">Already a member?</span>
+                </div>
+              </div>
+
               {/* Login Link */}
-              <div className="text-center pt-4">
-                <p className="text-sm text-slate-600">
+              <div className="text-center">
+                <p className="text-sm text-gray-600">
                   Already have an account?{" "}
                   <Link 
                     href="/auth/login" 
-                    className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+                    className="font-semibold text-orange-500 hover:text-orange-600 transition-colors"
                   >
                     Login here
                   </Link>
@@ -227,9 +251,12 @@ export default function SignupPage() {
         </Card>
 
         {/* Info Box */}
-        <div className="mt-6 p-4 bg-white/50 backdrop-blur rounded-lg border border-indigo-100">
-          <p className="text-xs text-slate-600 text-center">
-            By creating an account, you agree to our Terms of Service and Privacy Policy
+        <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+          <p className="text-xs text-gray-600 text-center leading-relaxed">
+            By creating an account, you agree to our{" "}
+            <Link href="/terms" className="text-orange-500 hover:text-orange-600">Terms of Service</Link>
+            {" "}and{" "}
+            <Link href="/privacy" className="text-orange-500 hover:text-orange-600">Privacy Policy</Link>
           </p>
         </div>
       </div>

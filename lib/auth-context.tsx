@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 interface AuthContextType {
   user: User | null
   loading: boolean
-  signUp: (email: string, password: string, fullName: string, college: string) => Promise<{ error: any }>
+  signUp: (email: string, password: string, fullName: string, college: string, branch?: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   // Ensure user exists in database
-  const ensureUserInDatabase = async (authUser: User, additionalData?: { college?: string }) => {
+  const ensureUserInDatabase = async (authUser: User, additionalData?: { college?: string, branch?: string }) => {
     try {
       // Check if user exists
       const { data: existingUser, error: checkError } = await supabase
@@ -53,6 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             college: additionalData?.college || 
                      authUser.user_metadata?.college || 
                      'Not specified',
+            branch: additionalData?.branch || 
+                    authUser.user_metadata?.branch || 
+                    null,
             avatar_url: authUser.user_metadata?.avatar_url || null,
             bio: null
           })
@@ -77,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Sign up new user
-  const signUp = async (email: string, password: string, fullName: string, college: string) => {
+  const signUp = async (email: string, password: string, fullName: string, college: string, branch?: string) => {
     try {
       // Create auth user
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -86,7 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             full_name: fullName,
-            college: college
+            college: college,
+            branch: branch || null
           }
         }
       })
@@ -97,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.user) {
         // Create user in database
-        const result = await ensureUserInDatabase(data.user, { college })
+        const result = await ensureUserInDatabase(data.user, { college, branch })
         
         if (!result.success) {
           return { error: result.error }
