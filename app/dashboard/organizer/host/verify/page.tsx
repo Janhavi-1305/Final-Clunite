@@ -64,23 +64,32 @@ export default function HostVerificationPage() {
 
       console.log('Verifying access:', { userEmail, clubEmail, pin })
 
-      // Find club by official email and PIN
-      const { data: pendingClub, error: clubError } = await supabase
-        .from('pending_clubs')
-        .select(`
-          *,
-          club:clubs(*)
-        `)
-        .eq('official_email', clubEmail)
-        .eq('pin', pin)
-        .single()
+      // Use API route to bypass RLS issues
+      const verifyResponse = await fetch('/api/verify-club', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clubEmail,
+          pin,
+          userId: authUser.id
+        })
+      })
 
-      if (clubError || !pendingClub) {
-        console.error('Club not found:', clubError)
-        setError("Invalid club email or PIN")
+      const verifyData = await verifyResponse.json()
+      console.log('API response:', verifyData)
+
+      if (!verifyResponse.ok) {
+        console.error('Verification failed:', verifyData)
+        if (verifyData.debug) {
+          console.log('Debug info:', verifyData.debug)
+        }
+        setError(verifyData.error || "Invalid club email or PIN")
         setIsSubmitting(false)
         return
       }
+
+      const pendingClub = verifyData.pendingClub
+      console.log('Found pending club:', pendingClub)
 
       // Check if PIN expired
       if (new Date(pendingClub.expires_at) < new Date()) {
@@ -89,28 +98,93 @@ export default function HostVerificationPage() {
         return
       }
 
-      // Check if user is an admin of this club
-      const { data: membership, error: membershipError } = await supabase
-        .from('club_memberships')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .eq('club_id', pendingClub.club_id)
-        .eq('role', 'admin')
-        .single()
+      console.log('✅ PIN verified! Creating club...')
 
-      if (membershipError || !membership) {
-        console.error('Not an admin:', membershipError)
-        setError("You are not an admin of this club. Please verify with the club PIN first.")
-        setIsSubmitting(false)
-        return
+      // If club doesn't exist yet, create it now
+      let clubId = pendingClub.club_id
+      let clubName = pendingClub.club_data?.name
+
+      if (!clubId) {
+        // Create the club
+        const { data: newClub, error: createError } = await supabase
+          .from('clubs')
+          .insert({
+            name: pendingClub.club_data.name,
+            tagline: pendingClub.club_data.tagline,
+            description: pendingClub.club_data.description,
+            vision: pendingClub.club_data.vision,
+            category: pendingClub.club_data.category,
+            college: pendingClub.club_data.college,
+            founding_date: pendingClub.club_data.founding_date,
+            contact_email: pendingClub.club_data.contact_email,
+            faculty_in_charge: pendingClub.club_data.faculty_in_charge,
+          })
+          .select()
+          .single()
+
+        if (createError || !newClub) {
+          console.error('Failed to create club:', createError)
+          setError("Failed to create club. Please try again.")
+          setIsSubmitting(false)
+          return
+        }
+
+        clubId = newClub.id
+        clubName = newClub.name
+
+        console.log('✅ Club created:', clubId)
+
+        // Update pending_clubs with club_id
+        await supabase
+          .from('pending_clubs')
+          .update({ 
+            club_id: clubId,
+            status: 'verified'
+          })
+          .eq('id', pendingClub.id)
+
+        // Add creator as admin
+        const { error: membershipError } = await supabase
+          .from('club_memberships')
+          .insert({
+            club_id: clubId,
+            user_id: authUser.id,
+            role: 'admin',
+            is_owner: true,
+          })
+
+        if (membershipError) {
+          console.error('Failed to add admin:', membershipError)
+          setError("Club created but failed to add you as admin. Please contact support.")
+          setIsSubmitting(false)
+          return
+        }
+
+        console.log('✅ Admin membership created')
+      } else {
+        // Club already exists, check if user is an admin
+        const { data: membership, error: membershipError } = await supabase
+          .from('club_memberships')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .eq('club_id', clubId)
+          .eq('role', 'admin')
+          .single()
+
+        if (membershipError || !membership) {
+          console.error('Not an admin:', membershipError)
+          setError("You are not an admin of this club.")
+          setIsSubmitting(false)
+          return
+        }
       }
 
       // Success! Store club info and redirect
       sessionStorage.setItem('hostVerified', 'true')
-      sessionStorage.setItem('selectedClubId', pendingClub.club_id)
-      sessionStorage.setItem('selectedClubName', pendingClub.club.name)
+      sessionStorage.setItem('selectedClubId', clubId)
+      sessionStorage.setItem('selectedClubName', clubName)
       
-      toast.success(`Access granted for ${pendingClub.club.name}!`)
+      toast.success(`Access granted for ${clubName}!`)
       router.push('/dashboard/organizer/host')
 
     } catch (err: any) {
@@ -138,13 +212,13 @@ export default function HostVerificationPage() {
             <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-3 mx-auto shadow-lg">
               <Lock className="h-8 w-8 text-white" />
             </div>
-            <CardTitle className="text-2xl text-center">Host Event Access</CardTitle>
+            <CardTitle className="text-2xl text-center">Verify Club Access</CardTitle>
             <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
-              <Shield className="h-4 w-4 text-indigo-500" />
+              <Shield className="h-4 w-4 text-orange-500" />
               <p>Secure Access Required</p>
             </div>
             <p className="text-sm text-slate-600 text-center mt-2">
-              Verify your club admin access
+              Enter your club's PIN to create your club or verify admin access
             </p>
           </CardHeader>
           <CardContent>
