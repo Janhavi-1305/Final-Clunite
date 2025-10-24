@@ -213,7 +213,18 @@ export function useOrganizerEvents(userId?: string) {
         currentUserId = user.id
       }
 
-      // First, get all clubs where user is an admin
+      console.log('=== FETCHING EVENTS FOR USER ===')
+      console.log('User ID:', currentUserId)
+      
+      // DEBUG: Check if there are ANY events in the database
+      const { data: allEventsDebug, count: totalEventsCount } = await supabase
+        .from('events')
+        .select('id, title, club_id, created_by', { count: 'exact' })
+      
+      console.log('DEBUG: Total events in database:', totalEventsCount)
+      console.log('DEBUG: All events:', allEventsDebug)
+
+      // First, get all clubs where user is an admin OR creator
       const { data: memberships, error: membershipsError } = await supabase
         .from('club_memberships')
         .select(`
@@ -223,20 +234,68 @@ export function useOrganizerEvents(userId?: string) {
         .eq('user_id', currentUserId)
         .eq('role', 'admin')
 
-      if (membershipsError) throw membershipsError
+      console.log('Club memberships found:', memberships?.length || 0, memberships)
 
-      const clubIds = (memberships || []).map((m: any) => m.club_id)
-      setUserClubs((memberships || []).map((m: any) => m.club))
-
-      // If user has no clubs, return empty
-      if (clubIds.length === 0) {
-        setEvents([])
-        setLoading(false)
-        return
+      if (membershipsError) {
+        console.error('Memberships error:', membershipsError)
+        throw membershipsError
       }
 
-      // Fetch events only for user's clubs
-      const { data: eventsData, error: eventsError } = await supabase
+      // Also get clubs created by the user
+      const { data: createdClubs, error: createdClubsError } = await supabase
+        .from('clubs')
+        .select('*')
+        .eq('created_by', currentUserId)
+
+      console.log('Created clubs found:', createdClubs)
+
+      if (createdClubsError) {
+        console.error('Created clubs error:', createdClubsError)
+      }
+
+      // Combine both sources of clubs
+      const allClubs = [
+        ...(memberships || []).map((m: any) => m.club),
+        ...(createdClubs || [])
+      ]
+      
+      // Remove duplicates by club id
+      const uniqueClubs = Array.from(new Map(allClubs.map(club => [club.id, club])).values())
+      const clubIds = uniqueClubs.map(club => club.id)
+      
+      console.log('All club IDs:', clubIds)
+      
+      setUserClubs(uniqueClubs)
+
+      // Fetch events for user's clubs (if any)
+      let eventsData: any[] = []
+      if (clubIds.length > 0) {
+        const { data, error: eventsError } = await supabase
+          .from("events")
+          .select(`
+            *,
+            club:clubs(*),
+            event_registrations(
+              id,
+              status,
+              registered_at
+            )
+          `)
+          .in('club_id', clubIds)
+          .order("created_at", { ascending: false })
+
+        console.log('Events fetched for clubs:', data)
+        console.log('Events error:', eventsError)
+        
+        if (!eventsError) {
+          eventsData = data || []
+        }
+      } else {
+        console.log('No clubs found for user, will check for user-created events')
+      }
+      
+      // ALSO fetch events created by the user directly (in case club membership isn't set up)
+      const { data: userEvents, error: userEventsError } = await supabase
         .from("events")
         .select(`
           *,
@@ -247,28 +306,89 @@ export function useOrganizerEvents(userId?: string) {
             registered_at
           )
         `)
-        .in('club_id', clubIds)
+        .eq('created_by', currentUserId)
         .order("created_at", { ascending: false })
-
-      if (eventsError) throw eventsError
+      
+      console.log('Events created by user:', userEvents)
+      
+      // Combine and deduplicate events
+      const allEvents = [...eventsData, ...(userEvents || [])]
+      const uniqueEvents = Array.from(new Map(allEvents.map(event => [event.id, event])).values())
+      
+      console.log('Total unique events:', uniqueEvents.length)
+      
+      // If no events at all, return empty
+      if (uniqueEvents.length === 0) {
+        console.log('No events found for user')
+        setEvents([])
+        setLoading(false)
+        return
+      }
 
       // Process events to include participant statistics
-      const eventsWithStats = (eventsData || []).map(event => {
-        const registrations = event.event_registrations || []
+      const eventsWithStats = await Promise.all(uniqueEvents.map(async (event: any) => {
+        // Fetch full registration data including registration_data field
+        const { data: fullRegistrations } = await supabase
+          .from('event_registrations')
+          .select('id, status, registration_data, user_id')
+          .eq('event_id', event.id)
+        
+        console.log(`Event "${event.title}" registrations:`, fullRegistrations)
+        
+        const registrations = fullRegistrations || []
+        
+        // Count actual participants (including team members)
+        let totalParticipants = 0
+        let registeredCount = 0
+        let waitlistedCount = 0
+        let cancelledCount = 0
+        let attendedCount = 0
+        
+        registrations.forEach((reg: any) => {
+          console.log(`Processing registration ${reg.id}:`, {
+            status: reg.status,
+            hasTeamMembers: !!reg.registration_data?.team_members,
+            teamSize: reg.registration_data?.team_members?.length || 0
+          })
+          
+          // Check if this is a team registration
+          if (reg.registration_data?.team_members && Array.isArray(reg.registration_data.team_members)) {
+            const teamSize = reg.registration_data.team_members.length
+            totalParticipants += teamSize
+            
+            // Count by status
+            if (reg.status === 'registered') registeredCount += teamSize
+            else if (reg.status === 'waitlisted') waitlistedCount += teamSize
+            else if (reg.status === 'cancelled') cancelledCount += teamSize
+            else if (reg.status === 'attended') attendedCount += teamSize
+          } else {
+            // Solo registration or regular user registration
+            totalParticipants += 1
+            
+            // Count by status
+            if (reg.status === 'registered') registeredCount += 1
+            else if (reg.status === 'waitlisted') waitlistedCount += 1
+            else if (reg.status === 'cancelled') cancelledCount += 1
+            else if (reg.status === 'attended') attendedCount += 1
+          }
+        })
+        
         const stats = {
-          total: registrations.length,
-          registered: registrations.filter((r: any) => r.status === 'registered').length,
-          waitlisted: registrations.filter((r: any) => r.status === 'waitlisted').length,
-          cancelled: registrations.filter((r: any) => r.status === 'cancelled').length,
-          attended: registrations.filter((r: any) => r.status === 'attended').length,
+          total: totalParticipants,
+          registered: registeredCount,
+          waitlisted: waitlistedCount,
+          cancelled: cancelledCount,
+          attended: attendedCount,
         }
+
+        console.log(`Event "${event.title}" final stats:`, stats)
 
         return {
           ...event,
           participantStats: stats,
           hasParticipants: stats.total > 0
         }
-      })
+      }))
 
       setEvents(eventsWithStats)
     } catch (err) {

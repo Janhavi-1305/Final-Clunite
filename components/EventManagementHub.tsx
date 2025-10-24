@@ -142,161 +142,194 @@ export default function EventManagementHub() {
   }
 
   return (
-    <Card className="border-0 shadow-xl bg-gradient-to-br from-white via-slate-50/50 to-purple-50/30 backdrop-blur-sm">
-      <CardHeader className="bg-gradient-to-r from-transparent via-purple-50/20 to-transparent">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-900 via-purple-800 to-indigo-900 bg-clip-text text-transparent flex items-center">
-              <Calendar className="h-6 w-6 mr-3 text-primary" />
-              Event Management Hub
-            </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2">
-              Manage all your created events and view participant details
-            </CardDescription>
-          </div>
-          <Link href="/dashboard/organizer/host">
-            <Button className="bg-gradient-to-r from-primary via-purple-600 to-indigo-600 hover:from-primary/90 hover:via-purple-600/90 hover:to-indigo-600/90 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Event
-            </Button>
-          </Link>
+    <div className="space-y-6">
+      {/* Modern Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Events</h1>
+          <p className="text-gray-500 mt-1">Manage and track all your events</p>
         </div>
-      </CardHeader>
-      <CardContent>
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input 
-              placeholder="Search your events..." 
-              className="pl-10 w-full max-w-md"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+        <Link href="/dashboard/organizer/host">
+          <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-5 w-5 mr-2" />
+            Create New Event
+          </Button>
+        </Link>
+      </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-none shadow-md bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/80">Total Events</p>
+                <p className="text-3xl font-bold mt-2">{events.length}</p>
+              </div>
+              <div className="p-3 bg-white/20 rounded-lg">
+                <Calendar className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-none shadow-md bg-gradient-to-br from-green-500 to-green-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/80">Published</p>
+                <p className="text-3xl font-bold mt-2">{events.filter(e => e.status === 'published').length}</p>
+              </div>
+              <div className="p-3 bg-white/20 rounded-lg">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-none shadow-md bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/80">Participants</p>
+                <p className="text-3xl font-bold mt-2">{events.reduce((sum, e) => sum + e.current_participants, 0)}</p>
+              </div>
+              <div className="p-3 bg-white/20 rounded-lg">
+                <Users className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-none shadow-md bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white/80">Drafts</p>
+                <p className="text-3xl font-bold mt-2">{events.filter(e => e.status === 'draft').length}</p>
+              </div>
+              <div className="p-3 bg-white/20 rounded-lg">
+                <Clock className="h-6 w-6" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Events List */}
-        {filteredEvents.length === 0 ? (
-          <div className="text-center py-12">
-            <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Events Found</h3>
-            <p className="text-gray-600 mb-6">
-              {events.length === 0 
-                ? "You haven't created any events yet. Start by creating your first event!"
-                : "No events match your search criteria."
-              }
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+        <Input 
+          placeholder="Search events..." 
+          className="pl-10 h-11"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* Events Grid */}
+      {filteredEvents.length === 0 ? (
+        <Card className="border-2 border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <Calendar className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No events found</h3>
+            <p className="text-gray-500 mb-6 text-center max-w-sm">
+              {searchQuery ? "Try adjusting your search terms" : "Get started by creating your first event"}
             </p>
-            {events.length === 0 && (
+            {!searchQuery && (
               <Link href="/dashboard/organizer/host">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
+                <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Event
+                  Create Event
                 </Button>
               </Link>
             )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredEvents.map((event) => (
-              <div
-                key={event.id}
-                className="border border-border/50 rounded-xl overflow-hidden hover:shadow-xl hover:scale-[1.02] transition-all duration-500 bg-gradient-to-br from-card via-slate-50/30 to-purple-50/20 backdrop-blur-sm group"
-              >
-                {/* Event Image */}
-                <div className="h-48 w-full">
-                  <EventImage
-                    src={event.image_url}
-                    alt={event.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    fallbackClassName="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 via-purple-50 to-indigo-50"
-                  />
-                </div>
-
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-bold text-gray-900">{event.title}</h3>
-                        <Badge className={getStatusColor(event.status)}>
-                          <div className="flex items-center space-x-1">
-                            {getStatusIcon(event.status)}
-                            <span>{event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span>
-                          </div>
-                        </Badge>
-                      </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-blue-500" />
-                        {new Date(event.start_date).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-green-500" />
-                        {event.venue || `${event.mode} event`}
-                      </div>
-                      <div className="flex items-center">
-                        <IndianRupee className="h-4 w-4 mr-2 text-yellow-500" />
-                        {event.entry_fee === 0 ? "Free" : `₹${event.entry_fee}`}
-                      </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredEvents.map((event) => (
+            <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+              {/* Event Image */}
+              <div className="relative h-48 overflow-hidden">
+                <EventImage
+                  src={event.image_url}
+                  alt={event.title}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  fallbackClassName="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100"
+                />
+                <div className="absolute top-3 right-3">
+                  <Badge className={`${getStatusColor(event.status)} shadow-lg`}>
+                    <div className="flex items-center gap-1">
+                      {getStatusIcon(event.status)}
+                      <span className="capitalize">{event.status}</span>
                     </div>
-
-                    <p className="text-gray-700 text-sm line-clamp-2 mb-4">
-                      {event.description}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Stats and Actions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6">
-                    <div className="text-center">
-                      <div className="flex items-center text-blue-600 mb-1">
-                        <Users className="h-4 w-4 mr-1" />
-                        <span className="text-sm font-medium">Participants</span>
-                      </div>
-                      <p className="text-lg font-bold text-gray-900">
-                        {event.current_participants}
-                        {event.max_participants && `/${event.max_participants}`}
-                      </p>
-                    </div>
-                    
-                    <div className="text-center">
-                      <div className="flex items-center text-purple-600 mb-1">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span className="text-sm font-medium">Type</span>
-                      </div>
-                      <p className="text-sm font-semibold text-gray-900 capitalize">
-                        {event.type}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Link href={`/dashboard/organizer/events/${event.id}/participants`}>
-                      <Button variant="outline" size="sm">
-                        <UserCheck className="h-4 w-4 mr-2" />
-                        View Participants
-                      </Button>
-                    </Link>
-                    
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
-                    </Button>
-                  </div>
-                </div>
+                  </Badge>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+
+              {/* Event Content */}
+              <CardContent className="p-5">
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1">{event.title}</h3>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {event.description}
+                  </p>
+                </div>
+
+                {/* Event Meta */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Calendar className="h-4 w-4 text-blue-500" />
+                    <span>{new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <MapPin className="h-4 w-4 text-green-500" />
+                    <span className="truncate">{event.venue || `${event.mode} event`}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <IndianRupee className="h-4 w-4 text-amber-500" />
+                      <span>{event.entry_fee === 0 ? "Free" : `₹${event.entry_fee}`}</span>
+                    </div>
+                    <Badge variant="outline" className="capitalize">{event.type}</Badge>
+                  </div>
+                </div>
+
+                {/* Participants */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Participants</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {event.current_participants}{event.max_participants && `/${event.max_participants}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <Link href={`/dashboard/organizer/events/${event.id}/participants`} className="flex-1">
+                    <Button variant="outline" className="w-full" size="sm">
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      View Participants
+                    </Button>
+                  </Link>
+                  <Button variant="outline" size="sm">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
