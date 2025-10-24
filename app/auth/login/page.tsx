@@ -72,27 +72,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-indigo-50/20 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-[#FBF7F4] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
-        <Card className="border-0 shadow-2xl">
-          <CardHeader className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl mb-4 mx-auto">
-              <LogIn className="h-8 w-8 text-white" />
+        <Card className="border border-gray-200 shadow-lg bg-white">
+          <CardHeader className="text-center space-y-3 pb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-lg mb-2 mx-auto">
+              <span className="text-white font-bold text-2xl">C</span>
             </div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold text-gray-900">
               Welcome Back
             </CardTitle>
-            <CardDescription className="text-base">
+            <CardDescription className="text-base text-gray-600">
               Login to continue managing your campus events
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent className="px-8 pb-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-indigo-600" />
-                  Email
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-900">
+                  Email Address
                 </Label>
                 <Input
                   id="email"
@@ -101,7 +100,7 @@ export default function LoginPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="h-12 border-2 focus:border-indigo-500"
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
                   autoComplete="email"
                 />
               </div>
@@ -109,13 +108,12 @@ export default function LoginPage() {
               {/* Password */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-indigo-600" />
+                  <Label htmlFor="password" className="text-sm font-semibold text-gray-900">
                     Password
                   </Label>
                   <Link 
                     href="/auth/forgot-password" 
-                    className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline"
+                    className="text-xs font-medium text-orange-500 hover:text-orange-600 transition-colors"
                   >
                     Forgot password?
                   </Link>
@@ -127,7 +125,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  className="h-12 border-2 focus:border-indigo-500"
+                  className="h-11 border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all rounded-lg"
                   autoComplete="current-password"
                 />
               </div>
@@ -136,7 +134,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 mt-6"
+                className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white text-base font-semibold rounded-lg transition-colors mt-8"
               >
                 {loading ? (
                   <>
@@ -145,21 +143,30 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <LogIn className="mr-2 h-5 w-5" />
-                    Login
+                    Login to Dashboard
                   </>
                 )}
               </Button>
 
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">New to Clunite?</span>
+                </div>
+              </div>
+
               {/* Signup Link */}
-              <div className="text-center pt-4">
-                <p className="text-sm text-slate-600">
+              <div className="text-center">
+                <p className="text-sm text-gray-600">
                   Don't have an account?{" "}
                   <Link 
                     href="/auth/signup" 
-                    className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+                    className="font-semibold text-orange-500 hover:text-orange-600 transition-colors"
                   >
-                    Sign up here
+                    Create one now
                   </Link>
                 </p>
               </div>
@@ -168,13 +175,16 @@ export default function LoginPage() {
         </Card>
 
         {/* Quick Links */}
-        <div className="mt-6 text-center space-y-2">
+        <div className="mt-6 text-center space-y-3">
           <Link 
             href="/" 
-            className="text-sm text-slate-600 hover:text-indigo-600 hover:underline block"
+            className="text-sm text-gray-600 hover:text-orange-500 inline-flex items-center gap-1 transition-colors"
           >
             ← Back to Home
           </Link>
+          <p className="text-xs text-gray-500">
+            Secure login powered by Supabase
+          </p>
         </div>
       </div>
     </div>
