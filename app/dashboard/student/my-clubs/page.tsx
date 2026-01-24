@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Search,
   Plus,
@@ -16,118 +18,20 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
-
-/**
- * STANDALONE PREVIEW CONFIGURATION
- * For use in your local project, please restore the original imports:
- * * import Link from 'next/link';
- * import { useClubs, useUserClubs, joinClubInstant, leaveClubInstant } from '@/hooks/useClubs';
- * import { useEventsForClubIds } from '@/hooks/useEvents';
- */
-
-// --- MOCK DATA FOR PREVIEW ---
-const MOCK_CLUBS = [
-  {
-    id: '1',
-    name: 'Design Ethos',
-    category: 'Creative',
-    description:
-      'A community for design thinking and digital product enthusiasts.',
-    members_count: 124,
-    events_hosted_count: 12,
-    credibility_score: 4.9,
-    banner_url:
-      'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=800',
-    is_verified: true,
-    college: 'School of Arts',
-  },
-  {
-    id: '2',
-    name: 'Algorithmic Traders',
-    category: 'Finance',
-    description:
-      'Exploring quantitative finance and high-frequency trading strategies.',
-    members_count: 89,
-    events_hosted_count: 5,
-    credibility_score: 4.7,
-    banner_url:
-      'https://images.unsplash.com/photo-1611974717482-5828edab9ef4?auto=format&fit=crop&q=80&w=800',
-    is_verified: true,
-    college: 'Business Faculty',
-  },
-  {
-    id: '3',
-    name: 'Rocketry Lab',
-    category: 'Engineering',
-    description:
-      'Designing and building sub-orbital rockets for scientific research.',
-    members_count: 45,
-    events_hosted_count: 8,
-    credibility_score: 4.8,
-    banner_url:
-      'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&q=80&w=800',
-    is_verified: false,
-    college: 'Engineering Hub',
-  },
-  {
-    id: '4',
-    name: 'Wellness Circle',
-    category: 'Health',
-    description: 'Focusing on student mental health and physical well-being.',
-    members_count: 210,
-    events_hosted_count: 20,
-    credibility_score: 4.5,
-    banner_url:
-      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800',
-    is_verified: true,
-    college: 'Main Campus',
-  },
-];
-
-const MOCK_EVENTS = [
-  {
-    id: 'e1',
-    title: 'System Design 101',
-    club: { name: 'Design Ethos' },
-    start_date: '2025-01-10T10:00:00Z',
-    current_participants: 45,
-    max_participants: 60,
-    image_url:
-      'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=800',
-  },
-  {
-    id: 'e2',
-    title: 'Winter Hackathon',
-    club: { name: 'Rocketry Lab' },
-    start_date: '2025-01-15T09:00:00Z',
-    current_participants: 120,
-    max_participants: 150,
-    image_url:
-      'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800',
-  },
-];
-
-// Mock Link component for Canvas preview
-const Link = ({ href, children, className }: any) => (
-  <a
-    href={href}
-    className={className}
-    onClick={(e) => {
-      if (href.startsWith('#')) e.preventDefault();
-      console.log(`Navigating to: ${href}`);
-    }}
-  >
-    {children}
-  </a>
-);
-
-const CURRENT_USER_ID = '550e8400-e29b-41d4-a716-446655440001';
+import { useClubs, useUserClubs, joinClubInstant, leaveClubInstant } from '@/hooks/useClubs';
+import { useEventsForClubIds } from '@/hooks/useEvents';
+import { useAuth } from '@/lib/auth-context';
 
 export default function App() {
-  // --- STATE MANAGEMENT (Simulated Hooks) ---
-  const [allClubs, setAllClubs] = useState(MOCK_CLUBS);
-  const [userClubs, setUserClubs] = useState(MOCK_CLUBS.slice(0, 2));
-  const [allClubsLoading, setAllClubsLoading] = useState(false);
+  const router = useRouter();
+  const { user: authUser, loading: authLoading } = useAuth();
+  
+  // Get user ID from auth
+  const userId = authUser?.id;
+
+  // Fetch all clubs and user's clubs from database
+  const { clubs: allClubs, loading: allClubsLoading, refetch: refetchAllClubs } = useClubs();
+  const { clubs: userClubs, loading: userClubsLoading, refetch: refetchUserClubs } = useUserClubs(userId || '');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [tabValue, setTabValue] = useState<'joined' | 'discover'>('joined');
@@ -135,8 +39,15 @@ export default function App() {
 
   const joinedClubIds = useMemo(() => userClubs.map((c) => c.id), [userClubs]);
 
-  // Simulated events hook results
-  const joinedClubsEvents = MOCK_EVENTS;
+  // Fetch events for joined clubs
+  const { events: joinedClubsEvents } = useEventsForClubIds(joinedClubIds);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !authUser) {
+      router.push('/login');
+    }
+  }, [authUser, authLoading, router]);
 
   const filteredUserClubs = useMemo(
     () =>
@@ -166,26 +77,45 @@ export default function App() {
     [allClubs, userClubs, searchTerm]
   );
 
-  // --- ACTIONS (Simulated API calls) ---
+  // --- ACTIONS (Real API calls) ---
   const handleJoin = async (id: string) => {
+    if (!userId) {
+      router.push('/login');
+      return;
+    }
+
     try {
       setJoiningClubId(id);
-      await new Promise((resolve) => setTimeout(resolve, 600)); // Simulate API delay
-      const club = allClubs.find((c) => c.id === id);
-      if (club) {
-        setUserClubs((prev) => [...prev, club]);
-      }
+      await joinClubInstant(userId, id);
+      // Refetch user clubs to get updated list
+      await refetchUserClubs();
       setTabValue('joined');
+    } catch (error) {
+      console.error('Error joining club:', error);
+      alert('Failed to join club. Please try again.');
     } finally {
       setJoiningClubId(null);
     }
   };
 
   const handleLeave = async (id: string) => {
-    setUserClubs((prev) => prev.filter((c) => c.id !== id));
+    if (!userId) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      await leaveClubInstant(userId, id);
+      // Refetch user clubs to get updated list
+      await refetchUserClubs();
+    } catch (error) {
+      console.error('Error leaving club:', error);
+      alert('Failed to leave club. Please try again.');
+    }
   };
 
-  if (allClubsLoading && userClubs.length === 0) {
+  // Show loading state while auth is loading or data is being fetched
+  if (authLoading || (allClubsLoading && userClubs.length === 0 && allClubs.length === 0) || userClubsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA]">
         <div className="flex flex-col items-center gap-4">
@@ -194,6 +124,11 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!authUser) {
+    return null;
   }
 
   return (
@@ -434,16 +369,22 @@ function EventListItem({ event }: any) {
   return (
     <div className="flex items-center gap-4 p-4 bg-white border border-zinc-200 rounded-xl hover:border-indigo-200 hover:shadow-md transition-all group">
       <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative">
-        <img
-          src={event.image_url}
-          alt={event.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {event.image_url ? (
+          <img
+            src={event.image_url}
+            alt={event.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
+            <Calendar className="w-6 h-6 text-zinc-400" />
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest mb-1 truncate">
-          {event.club?.name}
+          {event.club?.name || 'Club Event'}
         </div>
         <h4 className="font-bold text-zinc-900 truncate text-sm mb-1">
           {event.title}
@@ -451,12 +392,12 @@ function EventListItem({ event }: any) {
         <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-medium">
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            {new Date(event.start_date).toLocaleDateString()}
+            {event.start_date ? new Date(event.start_date).toLocaleDateString() : 'TBD'}
           </span>
           <span className="w-0.5 h-0.5 rounded-full bg-zinc-300" />
           <span className="flex items-center gap-1">
             <Users className="w-3 h-3" />
-            {event.current_participants}
+            {event.current_participants || 0}/{event.max_participants || '∞'}
           </span>
         </div>
       </div>
