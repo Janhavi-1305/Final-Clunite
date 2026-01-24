@@ -85,6 +85,7 @@ export default function ModernAnalyticsPage() {
   const [eventsForClub, setEventsForClub] = useState<any[]>([]);
   const [expenseForm, setExpenseForm] = useState({
     eventId: '',
+    type: 'expense' as 'income' | 'expense',
     category: '',
     amount: '',
     vendor: '',
@@ -275,12 +276,12 @@ export default function ModernAnalyticsPage() {
             <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                  Add Expenses
+                  Add Transaction
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Add Event Expenses</DialogTitle>
+                  <DialogTitle>Add Income or Expense</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -302,6 +303,25 @@ export default function ModernAnalyticsPage() {
                             {e.title}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Type *
+                    </label>
+                    <Select
+                      value={expenseForm.type}
+                      onValueChange={(v: 'income' | 'expense') =>
+                        setExpenseForm({ ...expenseForm, type: v })
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="income">Income</SelectItem>
+                        <SelectItem value="expense">Expense</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -416,6 +436,7 @@ export default function ModernAnalyticsPage() {
                       disabled={
                         savingExpense ||
                         !expenseForm.eventId ||
+                        !expenseForm.type ||
                         !expenseForm.category ||
                         !expenseForm.amount
                       }
@@ -431,6 +452,7 @@ export default function ModernAnalyticsPage() {
                             .from('event_expenses')
                             .insert({
                               event_id: expenseForm.eventId,
+                              type: expenseForm.type,
                               category: expenseForm.category,
                               amount: Number(expenseForm.amount),
                               vendor: expenseForm.vendor || null,
@@ -445,6 +467,7 @@ export default function ModernAnalyticsPage() {
                           setExpenseOpen(false);
                           setExpenseForm({
                             eventId: '',
+                            type: 'expense',
                             category: '',
                             amount: '',
                             vendor: '',
@@ -452,7 +475,9 @@ export default function ModernAnalyticsPage() {
                             incurredAt: new Date().toISOString().slice(0, 16),
                             notes: '',
                           });
-                          toast.success('Expense saved successfully');
+                          toast.success(
+                            `${expenseForm.type === 'income' ? 'Income' : 'Expense'} saved successfully`
+                          );
                           if (selectedClubId) loadAnalyticsData(selectedClubId);
                         } catch (e) {
                           console.error(e);
@@ -464,26 +489,14 @@ export default function ModernAnalyticsPage() {
                         }
                       }}
                     >
-                      {savingExpense ? 'Saving...' : 'Save Expense'}
+                      {savingExpense
+                        ? 'Saving...'
+                        : `Save ${expenseForm.type === 'income' ? 'Income' : 'Expense'}`}
                     </Button>
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() =>
-                selectedClubId && loadAnalyticsData(selectedClubId)
-              }
-            >
-              <Download className="h-4 w-4" />
-              Refresh Data
-            </Button>
-            <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 text-sm">
-              <Sparkles className="h-4 w-4 mr-1" />
-              Live Data
-            </Badge>
           </div>
         </div>
 
@@ -670,14 +683,10 @@ export default function ModernAnalyticsPage() {
 
           <TabsContent value="participants" className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
-              {demographics.byDepartment.length > 0 && (
-                <ParticipantsByDepartmentChart
-                  data={demographics.byDepartment.slice(0, 8)}
-                />
-              )}
-              {demographics.byYear.length > 0 && (
-                <ParticipantsByYearChart data={demographics.byYear} />
-              )}
+              <ParticipantsByDepartmentChart
+                data={demographics.byDepartment.slice(0, 8)}
+              />
+              <ParticipantsByYearChart data={demographics.byYear} />
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               {demographics.byGender.length > 0 && (

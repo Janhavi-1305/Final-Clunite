@@ -86,7 +86,30 @@ export function ParticipantsByDepartmentChart({ data }: { data: any[] }) {
 
 // Participants by Year Chart
 export function ParticipantsByYearChart({ data }: { data: any[] }) {
-  const COLORS = ["#f59e0b", "#ef4444", "#8b5cf6", "#3b82f6"]
+  const COLORS = ["#f59e0b", "#ef4444", "#8b5cf6", "#3b82f6", "#10b981", "#6366f1", "#f97316", "#14b8a6"]
+
+  if (!data || data.length === 0) {
+    return (
+      <Card className="border-none shadow-lg hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-amber-50 to-white">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg">
+              <Calendar className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Participants by Year of Study</CardTitle>
+              <CardDescription>Year-wise student distribution</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-[300px]">
+            <p className="text-sm text-muted-foreground">No data available. Participants need to fill in their year of study during event registration.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="border-none shadow-lg hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-amber-50 to-white">
@@ -96,7 +119,7 @@ export function ParticipantsByYearChart({ data }: { data: any[] }) {
             <Calendar className="h-6 w-6 text-white" />
           </div>
           <div>
-            <CardTitle className="text-xl">Participants by Academic Year</CardTitle>
+            <CardTitle className="text-xl">Participants by Year of Study</CardTitle>
             <CardDescription>Year-wise student distribution</CardDescription>
           </div>
         </div>

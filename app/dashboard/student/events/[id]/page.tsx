@@ -14,7 +14,6 @@ import { EventImage } from "@/components/EventImage"
 import {
   Calendar,
   Clock,
-  UserPlus,
   ArrowLeft,
   Users,
   Eye,
@@ -35,7 +34,6 @@ import {
   BookOpen,
   Zap,
   User,
-  X,
 } from "lucide-react"
 import Link from "next/link"
 import { supabase, type Event, type Club } from "@/lib/supabase"
@@ -53,6 +51,7 @@ interface TeamMember {
   college: string
   year: string
   branch: string
+  academic_year: string
 }
 
 export default function EventDetailsPage({ params }: { params: { id: string } }) {
@@ -74,6 +73,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
     participantPhone: "",
     participantCollege: "",
     participantYear: "",
+    participantAcademicYear: "",
     participantSkills: "",
     participantExperience: "",
     // Team data
@@ -176,6 +176,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
         college: "",
         year: "",
         branch: "",
+        academic_year: "",
       })
     }
 
@@ -203,6 +204,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
             college: "",
             year: "",
             branch: "",
+            academic_year: "",
           },
         ],
       }))
@@ -239,6 +241,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
             college: "",
             year: "",
             branch: "",
+            academic_year: "",
           },
         ],
       }))
@@ -374,7 +377,6 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
               }))
             : null,
           additional_info: {
-            specialRequirements: registrationData.specialRequirements?.trim(),
             dietaryRestrictions: registrationData.dietaryRestrictions?.trim(),
             branch: registrationData.branch?.trim(),
           }
@@ -1197,16 +1199,6 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     rows={3}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="requirements">Special Requirements</Label>
-                  <Textarea
-                    id="requirements"
-                    value={registrationData.specialRequirements}
-                    onChange={(e) => setRegistrationData((prev) => ({ ...prev, specialRequirements: e.target.value }))}
-                    placeholder="Any special requirements or accessibility needs"
-                    rows={2}
-                  />
-                </div>
               </div>
             ) : (
               // Team Registration Form
@@ -1225,36 +1217,15 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-gray-900 text-lg">Team Members</h3>
-                    {registrationData.teamMembers.length < 8 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addTeamMember}
-                        className="text-indigo-600 border-indigo-200 bg-transparent"
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Add Member
-                      </Button>
-                    )}
                   </div>
 
                   <div className="space-y-4 max-h-96 overflow-y-auto">
                     {registrationData.teamMembers.map((member, index) => (
                       <Card key={index} className="border border-gray-200 p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-medium text-gray-900">Member {index + 1}</h4>
-                          {registrationData.teamMembers.length > (event?.team_size === "2_people" ? 2 : 4) && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeTeamMember(index)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <h4 className="font-medium text-gray-900">
+                            {index === 0 ? "Team Leader" : `Member ${index}`}
+                          </h4>
                         </div>
                         <div className="grid md:grid-cols-2 gap-3">
                           <div>
@@ -1300,21 +1271,18 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                               placeholder="e.g., Computer Science"
                             />
                           </div>
+                          <div>
+                            <Label>Year of Study</Label>
+                            <Input
+                              value={member.year}
+                              onChange={(e) => updateTeamMember(index, "year", e.target.value)}
+                              placeholder="e.g., 2nd Year, Final Year"
+                            />
+                          </div>
                         </div>
                       </Card>
                     ))}
                   </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="teamRequirements">Special Requirements</Label>
-                  <Textarea
-                    id="teamRequirements"
-                    value={registrationData.specialRequirements}
-                    onChange={(e) => setRegistrationData((prev) => ({ ...prev, specialRequirements: e.target.value }))}
-                    placeholder="Any special requirements for the team"
-                    rows={2}
-                  />
                 </div>
               </div>
             )}

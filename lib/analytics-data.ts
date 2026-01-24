@@ -251,19 +251,111 @@ export async function fetchParticipantDemographics(clubId: string): Promise<Part
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
 
-    // Placeholder data for year and gender (would need additional user fields)
-    const byYear = [
-      { name: '1st Year', count: Math.floor(users.length * 0.2), percentage: 20 },
-      { name: '2nd Year', count: Math.floor(users.length * 0.3), percentage: 30 },
-      { name: '3rd Year', count: Math.floor(users.length * 0.3), percentage: 30 },
-      { name: '4th Year', count: Math.floor(users.length * 0.2), percentage: 20 }
-    ]
+    // Fetch registration data to get year of study
+    const { data: allRegistrations } = await supabase
+      .from('event_registrations')
+      .select('registration_data')
+      .in('event_id', eventIds)
 
-    const byGender = [
-      { name: 'Male', count: Math.floor(users.length * 0.6), percentage: 60 },
-      { name: 'Female', count: Math.floor(users.length * 0.35), percentage: 35 },
-      { name: 'Other', count: Math.floor(users.length * 0.05), percentage: 5 }
-    ]
+    // Extract year of study from registrations
+    const yearCounts: Record<string, number> = {}
+    let totalYearParticipants = 0
+
+    if (allRegistrations) {
+      for (const reg of allRegistrations) {
+        const regData = reg.registration_data
+        if (!regData) continue
+
+        // Handle solo registrations
+        if (regData.participant_details?.year) {
+          const year = regData.participant_details.year.trim()
+          if (year) {
+            yearCounts[year] = (yearCounts[year] || 0) + 1
+            totalYearParticipants++
+          }
+        }
+
+        // Handle team registrations
+        if (regData.team_members && Array.isArray(regData.team_members)) {
+          for (const member of regData.team_members) {
+            if (member.year) {
+              const year = member.year.trim()
+              if (year) {
+                yearCounts[year] = (yearCounts[year] || 0) + 1
+                totalYearParticipants++
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const byYear = Object.entries(yearCounts)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: totalYearParticipants > 0 ? (count / totalYearParticipants) * 100 : 0
+      }))
+      .sort((a, b) => b.count - a.count)
+
+    // Extract gender from user accounts by matching emails from registrations
+    const emailToGenderMap: Record<string, string> = {}
+    
+    // First, get all user emails and genders
+    const { data: allUsers } = await supabase
+      .from('users')
+      .select('email, gender')
+    
+    if (allUsers) {
+      allUsers.forEach(user => {
+        if (user.email && user.gender) {
+          emailToGenderMap[user.email.toLowerCase()] = user.gender
+        }
+      })
+    }
+
+    // Now extract emails from registrations and match with gender
+    const genderCounts: Record<string, number> = {}
+    let totalGenderParticipants = 0
+
+    if (allRegistrations) {
+      for (const reg of allRegistrations) {
+        const regData = reg.registration_data
+        if (!regData) continue
+
+        // Handle solo registrations
+        if (regData.participant_details?.email) {
+          const email = regData.participant_details.email.toLowerCase()
+          const gender = emailToGenderMap[email]
+          if (gender) {
+            genderCounts[gender] = (genderCounts[gender] || 0) + 1
+            totalGenderParticipants++
+          }
+        }
+
+        // Handle team registrations
+        if (regData.team_members && Array.isArray(regData.team_members)) {
+          for (const member of regData.team_members) {
+            if (member.email) {
+              const email = member.email.toLowerCase()
+              const gender = emailToGenderMap[email]
+              if (gender) {
+                genderCounts[gender] = (genderCounts[gender] || 0) + 1
+                totalGenderParticipants++
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const byGender = Object.entries(genderCounts)
+      .map(([name, count]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
+        count,
+        percentage: totalGenderParticipants > 0 ? (count / totalGenderParticipants) * 100 : 0
+      }))
+      .sort((a, b) => b.count - a.count)
 
     return {
       byDepartment,
@@ -302,52 +394,76 @@ export async function fetchFinancialMetrics(clubId: string): Promise<FinancialMe
       }
     }
 
-    // Calculate income
+    // Calculate income from entry fees
     const incomeByEvent = events.map(event => ({
       eventName: event.title,
       income: event.entry_fee * event.current_participants
     }))
 
-    const totalIncome = incomeByEvent.reduce((sum, e) => sum + e.income, 0)
-
-    // Real expenses from event_expenses + include prize_pool if present
+    // Separate income and expenses from event_expenses based on type field
     const eventIds = events.map(e => e.id)
     let totalExpenses = 0
+    let totalIncomeFromEntries = 0
     let expenseBreakdown: Array<{ category: string; amount: number; percentage: number }> = []
+    let incomeBreakdown: Array<{ category: string; amount: number; percentage: number }> = []
 
     if (eventIds.length > 0) {
-      const { data: expenses } = await supabase
+      const { data: financialEntries } = await supabase
         .from('event_expenses')
-        .select('category, amount, event_id')
+        .select('category, amount, event_id, type')
         .in('event_id', eventIds)
 
-      const byCategory: Record<string, number> = {}
+      const expenseByCategory: Record<string, number> = {}
+      const incomeByCategory: Record<string, number> = {}
       let expensesTotal = 0
-      if (expenses && expenses.length > 0) {
-        for (const exp of expenses) {
-          const amt = Number(exp.amount) || 0
-          expensesTotal += amt
-          byCategory[exp.category] = (byCategory[exp.category] || 0) + amt
+      let incomeTotal = 0
+
+      if (financialEntries && financialEntries.length > 0) {
+        for (const entry of financialEntries) {
+          const amt = Number(entry.amount) || 0
+          const entryType = (entry as any).type || 'expense' // Default to expense if type not present
+          
+          if (entryType === 'income') {
+            incomeTotal += amt
+            incomeByCategory[entry.category] = (incomeByCategory[entry.category] || 0) + amt
+          } else {
+            expensesTotal += amt
+            expenseByCategory[entry.category] = (expenseByCategory[entry.category] || 0) + amt
+          }
         }
       }
 
-      // Add prize pool as a category if present
+      // Add prize pool as an expense category if present
       const prizePoolTotal = events.reduce((sum, e) => sum + (e.prize_pool || 0), 0)
       if (prizePoolTotal > 0) {
-        byCategory['Prize Pool'] = (byCategory['Prize Pool'] || 0) + prizePoolTotal
+        expenseByCategory['Prize Pool'] = (expenseByCategory['Prize Pool'] || 0) + prizePoolTotal
         expensesTotal += prizePoolTotal
       }
 
       totalExpenses = expensesTotal
-      const entries = Object.entries(byCategory)
-      expenseBreakdown = entries.map(([category, amount]) => ({
+      totalIncomeFromEntries = incomeTotal
+
+      // Process expense breakdown
+      const expenseEntries = Object.entries(expenseByCategory)
+      expenseBreakdown = expenseEntries.map(([category, amount]) => ({
         category,
         amount,
         percentage: expensesTotal > 0 ? (amount / expensesTotal) * 100 : 0
       }))
-      // Sort largest first
       expenseBreakdown.sort((a, b) => b.amount - a.amount)
+
+      // Process income breakdown (for potential future use)
+      const incomeEntries = Object.entries(incomeByCategory)
+      incomeBreakdown = incomeEntries.map(([category, amount]) => ({
+        category,
+        amount,
+        percentage: incomeTotal > 0 ? (amount / incomeTotal) * 100 : 0
+      }))
+      incomeBreakdown.sort((a, b) => b.amount - a.amount)
     }
+
+    // Calculate total income: entry fees + income entries
+    const totalIncome = incomeByEvent.reduce((sum, e) => sum + e.income, 0) + totalIncomeFromEntries
 
     return {
       totalIncome,
