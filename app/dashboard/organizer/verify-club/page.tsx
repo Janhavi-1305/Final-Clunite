@@ -1,39 +1,53 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
-import { ensureUserExists } from "@/lib/sync-user"
-import { supabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { toast } from "sonner"
-import { Loader2, Shield, CheckCircle2, Mail, Users, Clock } from "lucide-react"
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
+import { ensureUserExists } from '@/lib/sync-user';
+import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import {
+  Loader2,
+  Shield,
+  CheckCircle2,
+  Mail,
+  Users,
+  Clock,
+} from 'lucide-react';
 
 export default function VerifyClubPage() {
-  const router = useRouter()
-  const { user: authUser } = useAuth()
-  
-  const [loading, setLoading] = useState(false)
-  const [pin, setPin] = useState("")
-  const [pendingClubData, setPendingClubData] = useState<any>(null)
-  const [pendingClubId, setPendingClubId] = useState<string | null>(null)
-  const [verified, setVerified] = useState(false)
+  const router = useRouter();
+  const { user: authUser } = useAuth();
+
+  const [loading, setLoading] = useState(false);
+  const [pin, setPin] = useState('');
+  const [clubName, setClubName] = useState('');
+  const [pendingClubData, setPendingClubData] = useState<any>(null);
+  const [pendingClubId, setPendingClubId] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
     // Load pending club ID from sessionStorage
-    const storedId = sessionStorage.getItem('pendingClubId')
+    const storedId = sessionStorage.getItem('pendingClubId');
     if (storedId) {
-      setPendingClubId(storedId)
-      loadPendingClub(storedId)
+      setPendingClubId(storedId);
+      loadPendingClub(storedId);
     } else {
-      toast.error('No pending club found. Please create a club first.')
-      router.push('/dashboard/organizer/create-club')
+      toast.error('No pending club found. Please create a club first.');
+      router.push('/dashboard/organizer/create-club');
     }
-  }, [])
+  }, []);
 
   const loadPendingClub = async (id: string) => {
     try {
@@ -42,95 +56,114 @@ export default function VerifyClubPage() {
         .select('*')
         .eq('id', id)
         .eq('status', 'pending')
-        .single()
+        .single();
 
       if (error || !data) {
-        console.error('Failed to load pending club:', error)
-        toast.error('Failed to load club data. Please try again.')
-        router.push('/dashboard/organizer/create-club')
-        return
+        console.error('Failed to load pending club:', error);
+        toast.error('Failed to load club data. Please try again.');
+        router.push('/dashboard/organizer/create-club');
+        return;
       }
 
-      setPendingClubData(data)
+      setPendingClubData(data);
+      // Pre-populate club name for verification
+      if (data.club_data?.name) {
+        setClubName(data.club_data.name);
+      }
     } catch (error: any) {
-      console.error('Error loading pending club:', error)
-      toast.error('Error loading club data')
+      console.error('Error loading pending club:', error);
+      toast.error('Error loading club data');
     }
-  }
-
+  };
 
   const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
       // 1. Validate inputs
       if (!pendingClubData || !pendingClubId) {
-        toast.error("No pending club data found")
-        setLoading(false)
-        return
+        toast.error('No pending club data found');
+        setLoading(false);
+        return;
       }
 
       if (pin.length !== 8) {
-        toast.error("PIN must be exactly 8 digits")
-        setLoading(false)
-        return
+        toast.error('PIN must be exactly 8 digits');
+        setLoading(false);
+        return;
       }
 
-      // 2. Verify PIN matches
+      // 2. Verify club name matches (for duplicate email protection)
+      if (
+        !clubName ||
+        clubName.toLowerCase() !== pendingClubData.club_data.name.toLowerCase()
+      ) {
+        toast.error(
+          "Club name doesn't match. Please verify you're verifying the correct club."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // 3. Verify PIN matches
       if (pin !== pendingClubData.pin) {
-        toast.error("Invalid PIN. Please check your email and try again.")
-        setLoading(false)
-        return
+        toast.error('Invalid PIN. Please check your email and try again.');
+        setLoading(false);
+        return;
       }
 
-      // 3. Check authentication
+      // 4. Check authentication
       if (!authUser) {
-        toast.error("You must be logged in to verify a club")
-        setLoading(false)
-        return
+        toast.error('You must be logged in to verify a club');
+        setLoading(false);
+        return;
       }
 
-      console.log('PIN verified! Creating club now...')
+      console.log('PIN and club name verified! Creating club now...');
 
       // 4. Ensure user exists in database
-      const userSyncResult = await ensureUserExists(authUser, { college: pendingClubData.club_data.college })
-      
+      const userSyncResult = await ensureUserExists(authUser, {
+        college: pendingClubData.club_data.college,
+      });
+
       if (!userSyncResult.success) {
-        console.error('Failed to sync user:', userSyncResult.error)
-        toast.error("Failed to verify user account. Please try again.")
-        setLoading(false)
-        return
+        console.error('Failed to sync user:', userSyncResult.error);
+        toast.error('Failed to verify user account. Please try again.');
+        setLoading(false);
+        return;
       }
 
       // 5. Upload banner NOW (after PIN verification)
-      let bannerUrl = null
-      const pendingBanner = sessionStorage.getItem('pendingBannerFile')
+      let bannerUrl = null;
+      const pendingBanner = sessionStorage.getItem('pendingBannerFile');
       if (pendingBanner) {
         try {
-          const bannerData = JSON.parse(pendingBanner)
+          const bannerData = JSON.parse(pendingBanner);
           // Convert base64 back to file
-          const response = await fetch(bannerData.data)
-          const blob = await response.blob()
-          const file = new File([blob], bannerData.name, { type: bannerData.type })
-          
+          const response = await fetch(bannerData.data);
+          const blob = await response.blob();
+          const file = new File([blob], bannerData.name, {
+            type: bannerData.type,
+          });
+
           // Upload to Club Banner bucket
-          const formData = new FormData()
-          formData.append('file', file)
-          formData.append('bucket', 'Club Banner')
-          
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('bucket', 'Club Banner');
+
           const uploadResponse = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
-          })
-          
+          });
+
           if (uploadResponse.ok) {
-            const uploadData = await uploadResponse.json()
-            bannerUrl = uploadData.url
-            console.log('✅ Banner uploaded:', bannerUrl)
+            const uploadData = await uploadResponse.json();
+            bannerUrl = uploadData.url;
+            console.log('✅ Banner uploaded:', bannerUrl);
           }
         } catch (err) {
-          console.error('Banner upload error:', err)
+          console.error('Banner upload error:', err);
           // Continue without banner
         }
       }
@@ -153,19 +186,21 @@ export default function VerifyClubPage() {
           created_by: authUser.id,
           members_count: 1,
           events_hosted_count: 0,
-          credibility_score: 0
+          credibility_score: 0,
         })
         .select()
-        .single()
+        .single();
 
       if (clubError || !club) {
-        console.error('Club creation error:', clubError)
-        toast.error(`Failed to create club: ${clubError?.message || 'Unknown error'}`)
-        setLoading(false)
-        return
+        console.error('Club creation error:', clubError);
+        toast.error(
+          `Failed to create club: ${clubError?.message || 'Unknown error'}`
+        );
+        setLoading(false);
+        return;
       }
 
-      console.log('✅ Club created successfully:', club.id)
+      console.log('✅ Club created successfully:', club.id);
 
       // 7. Add user as club owner/admin
       const { error: membershipError } = await supabase
@@ -175,59 +210,60 @@ export default function VerifyClubPage() {
           club_id: club.id,
           role: 'admin',
           is_owner: true,
-          verified_via_pin: true
-        })
+          verified_via_pin: true,
+        });
 
       if (membershipError) {
-        console.error('Membership creation error:', membershipError)
-        toast.error(`Failed to add as admin: ${membershipError.message}`)
-        setLoading(false)
-        return
+        console.error('Membership creation error:', membershipError);
+        toast.error(`Failed to add as admin: ${membershipError.message}`);
+        setLoading(false);
+        return;
       }
 
       // 8. Update pending_clubs status
       await supabase
         .from('pending_clubs')
-        .update({ 
+        .update({
           status: 'verified',
           club_id: club.id,
           used_count: 1,
           first_used_by: authUser.id,
-          first_used_at: new Date().toISOString()
+          first_used_at: new Date().toISOString(),
         })
-        .eq('id', pendingClubId)
+        .eq('id', pendingClubId);
 
       // 9. Update user role to organizer
       await supabase
         .from('users')
         .update({ role: 'organizer' })
-        .eq('id', authUser.id)
+        .eq('id', authUser.id);
 
       // 10. Store club info in sessionStorage for immediate access
-      sessionStorage.setItem('selectedClubId', club.id)
-      sessionStorage.setItem('selectedClubName', club.name)
-      sessionStorage.setItem('hostVerified', 'true')
-      
+      sessionStorage.setItem('selectedClubId', club.id);
+      sessionStorage.setItem('selectedClubName', club.name);
+      sessionStorage.setItem('hostVerified', 'true');
+
       // Clear pending club data
-      sessionStorage.removeItem('pendingClubId')
-      sessionStorage.removeItem('pendingBannerFile')
+      sessionStorage.removeItem('pendingClubId');
+      sessionStorage.removeItem('pendingBannerFile');
 
       // 11. Success!
-      setVerified(true)
-      toast.success("Congratulations! Club created successfully. You are now the club owner!")
-      
+      setVerified(true);
+      toast.success(
+        'Congratulations! Club created successfully. You are now the club owner!'
+      );
+
       // Redirect directly to Event Management Hub
       setTimeout(() => {
-        router.push('/dashboard/organizer/host')
-      }, 2000)
-
+        router.push('/dashboard/organizer/host');
+      }, 2000);
     } catch (error: any) {
-      console.error('Error verifying club:', error)
-      toast.error(`Failed to verify club: ${error.message || 'Unknown error'}`)
+      console.error('Error verifying club:', error);
+      toast.error(`Failed to verify club: ${error.message || 'Unknown error'}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (verified) {
     return (
@@ -243,7 +279,8 @@ export default function VerifyClubPage() {
                   Club Verified!
                 </h2>
                 <p className="text-base text-slate-600 leading-relaxed">
-                  Your club has been successfully verified. You now have full organizer access.
+                  Your club has been successfully verified. You now have full
+                  organizer access.
                 </p>
               </div>
               <div className="p-4 bg-green-50 rounded-xl border-2 border-green-200">
@@ -255,7 +292,7 @@ export default function VerifyClubPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
@@ -278,15 +315,52 @@ export default function VerifyClubPage() {
           <CardContent className="space-y-6">
             {pendingClubData && pendingClubData.club_data && (
               <div className="p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200 shadow-sm">
-                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-1">Club Name</p>
-                <p className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{pendingClubData.club_data.name}</p>
-                <p className="text-sm text-slate-500 mt-2">{pendingClubData.official_email}</p>
+                <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                  Club Name
+                </p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {pendingClubData.club_data.name}
+                </p>
+                <p className="text-sm text-slate-500 mt-2">
+                  {pendingClubData.official_email}
+                </p>
               </div>
             )}
 
             <form onSubmit={handleVerify} className="space-y-6">
+              {/* Club Name Display and Verification */}
               <div className="space-y-3">
-                <Label htmlFor="pin" className="flex items-center gap-2 text-base font-semibold">
+                <Label
+                  htmlFor="clubName"
+                  className="flex items-center gap-2 text-base font-semibold"
+                >
+                  <Shield className="h-5 w-5 text-indigo-600" />
+                  Club Name (Verification)
+                </Label>
+                <Input
+                  id="clubName"
+                  type="text"
+                  placeholder={
+                    pendingClubData?.club_data?.name || 'Enter your club name'
+                  }
+                  value={clubName}
+                  onChange={(e) => setClubName(e.target.value)}
+                  required
+                  className="text-base font-semibold"
+                />
+                <p className="text-xs text-slate-500">
+                  {clubName.toLowerCase() ===
+                  pendingClubData?.club_data?.name?.toLowerCase()
+                    ? '✓ Club name matches'
+                    : 'Club name must match the one you created'}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label
+                  htmlFor="pin"
+                  className="flex items-center gap-2 text-base font-semibold"
+                >
                   <Mail className="h-5 w-5 text-indigo-600" />
                   8-Digit PIN
                 </Label>
@@ -295,19 +369,27 @@ export default function VerifyClubPage() {
                   type="text"
                   placeholder="12345678"
                   value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                maxLength={8}
-                required
-                className="text-center text-2xl tracking-widest font-mono"
-              />
-              <p className="text-sm text-muted-foreground">
-                Check your email inbox for the PIN
-              </p>
-            </div>
+                  onChange={(e) =>
+                    setPin(e.target.value.replace(/\D/g, '').slice(0, 8))
+                  }
+                  maxLength={8}
+                  required
+                  className="text-center text-2xl tracking-widest font-mono"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Check your email inbox for the PIN
+                </p>
+              </div>
 
               <Button
                 type="submit"
-                disabled={loading || pin.length !== 8}
+                disabled={
+                  loading ||
+                  pin.length !== 8 ||
+                  !clubName ||
+                  clubName.toLowerCase() !==
+                    pendingClubData?.club_data?.name?.toLowerCase()
+                }
                 className="w-full h-14 text-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all"
               >
                 {loading ? (
@@ -331,7 +413,9 @@ export default function VerifyClubPage() {
                   type="button"
                   variant="link"
                   className="text-indigo-600 hover:text-indigo-700"
-                  onClick={() => router.push('/dashboard/organizer/create-club')}
+                  onClick={() =>
+                    router.push('/dashboard/organizer/create-club')
+                  }
                 >
                   Create a new club
                 </Button>
@@ -341,5 +425,5 @@ export default function VerifyClubPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

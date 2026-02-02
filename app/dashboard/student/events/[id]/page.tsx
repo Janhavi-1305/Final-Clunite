@@ -1,16 +1,29 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { EventImage } from "@/components/EventImage"
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { EventImage } from '@/components/EventImage';
 import {
   Calendar,
   Clock,
@@ -34,161 +47,182 @@ import {
   BookOpen,
   Zap,
   User,
-} from "lucide-react"
-import Link from "next/link"
-import { supabase, type Event, type Club } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+} from 'lucide-react';
+import Link from 'next/link';
+import { supabase, type Event, type Club } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 interface EventWithClub extends Event {
-  club?: Club
+  club?: Club;
 }
 
 interface TeamMember {
-  name: string
-  email: string
-  phone: string
-  college: string
-  year: string
-  branch: string
-  academic_year: string
+  name: string;
+  email: string;
+  phone: string;
+  college: string;
+  year: string;
+  gender: string;
+  branch: string;
+  academic_year: string;
 }
 
-export default function EventDetailsPage({ params }: { params: { id: string } }) {
-  const router = useRouter()
-  const { user } = useAuth()
-  const [event, setEvent] = useState<EventWithClub | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [showRegistrationDialog, setShowRegistrationDialog] = useState(false)
-  const [registering, setRegistering] = useState(false)
-  const [registrationStatus, setRegistrationStatus] = useState<"idle" | "success" | "error">("idle")
-  const [errorMessage, setErrorMessage] = useState("")
-  const [successMessage, setSuccessMessage] = useState("")
-  const [isRegistered, setIsRegistered] = useState(false)
+export default function EventDetailsPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [event, setEvent] = useState<EventWithClub | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<
+    'idle' | 'success' | 'error'
+  >('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const [registrationData, setRegistrationData] = useState({
     // Solo participant data
-    participantName: "",
-    participantEmail: "",
-    participantPhone: "",
-    participantCollege: "",
-    participantYear: "",
-    participantAcademicYear: "",
-    participantSkills: "",
-    participantExperience: "",
+    participantName: '',
+    participantEmail: '',
+    participantPhone: '',
+    participantCollege: '',
+    participantYear: '',
+    participantGender: '',
+    participantAcademicYear: '',
     // Team data
-    teamName: "",
+    teamName: '',
     teamMembers: [] as TeamMember[],
     // Additional info
-    specialRequirements: "",
-    dietaryRestrictions: "",
-    branch: "",
-  })
+    specialRequirements: '',
+    dietaryRestrictions: '',
+    branch: '',
+  });
 
   useEffect(() => {
-    fetchEventDetails()
+    fetchEventDetails();
     if (user) {
-      checkRegistrationStatus()
+      checkRegistrationStatus();
     }
-  }, [params.id, user])
+  }, [params.id, user]);
 
   const fetchEventDetails = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const { data: eventData, error } = await supabase
-        .from("events")
-        .select(`
+        .from('events')
+        .select(
+          `
           *,
           club:clubs(*)
-        `)
-        .eq("id", params.id)
-        .single()
+        `
+        )
+        .eq('id', params.id)
+        .single();
 
-      if (error) throw error
+      if (error) throw error;
 
       // Get fresh registration count
       const { data: regCount } = await supabase
-        .from("event_registrations")
-        .select("registration_data")
-        .eq("event_id", params.id)
+        .from('event_registrations')
+        .select('registration_data')
+        .eq('event_id', params.id);
 
       // Calculate total participants including team members
-      const totalParticipants = regCount?.reduce((total, reg) => {
-        if (reg.registration_data?.team_members) {
-          return total + reg.registration_data.team_members.length;
-        } else if (reg.registration_data?.participant_details) {
-          return total + 1;
-        }
-        return total;
-      }, 0) || 0;
+      const totalParticipants =
+        regCount?.reduce((total, reg) => {
+          if (reg.registration_data?.team_members) {
+            return total + reg.registration_data.team_members.length;
+          } else if (reg.registration_data?.participant_details) {
+            return total + 1;
+          }
+          return total;
+        }, 0) || 0;
 
       // Update the event data with the fresh count
       const updatedEvent = {
         ...eventData,
-        current_participants: totalParticipants
+        current_participants: totalParticipants,
       };
 
-      setEvent(updatedEvent)
+      setEvent(updatedEvent);
     } catch (error) {
-      console.error("Error fetching event:", error)
+      console.error('Error fetching event:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const checkRegistrationStatus = async () => {
     try {
       if (!user) {
-        setIsRegistered(false)
-        return
+        setIsRegistered(false);
+        return;
       }
 
       // Check registration for THIS specific user
       const { data, error } = await supabase
-        .from("event_registrations")
-        .select("id")
-        .eq("event_id", params.id)
-        .eq("user_id", user.id)
-        .maybeSingle()
+        .from('event_registrations')
+        .select('id')
+        .eq('event_id', params.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error checking registration:", error)
-        return
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking registration:', error);
+        return;
       }
 
-      setIsRegistered(!!data)
+      setIsRegistered(!!data);
     } catch (error) {
-      console.error("Error checking registration status:", error)
+      console.error('Error checking registration status:', error);
     }
-  }
+  };
 
   const initializeTeamMembers = () => {
-    if (!event) return
+    if (!event) return;
 
-    const requiredMembers = event.team_size === "2_people" ? 2 : event.team_size === "group_4+" ? 4 : 1
-    const members: TeamMember[] = []
+    const requiredMembers =
+      event.team_size === '2_people'
+        ? 2
+        : event.team_size === 'group_4+'
+          ? 4
+          : 1;
+    const members: TeamMember[] = [];
 
     for (let i = 0; i < requiredMembers; i++) {
       members.push({
-        name: "",
-        email: "",
-        phone: "",
-        college: "",
-        year: "",
-        branch: "",
-        academic_year: "",
-      })
+        name: '',
+        email: '',
+        phone: '',
+        college: '',
+        year: '',
+        gender: '',
+        branch: '',
+        academic_year: '',
+      });
     }
 
-    setRegistrationData((prev) => ({ ...prev, teamMembers: members }))
-  }
+    setRegistrationData((prev) => ({ ...prev, teamMembers: members }));
+  };
 
-  const updateTeamMember = (index: number, field: keyof TeamMember, value: string) => {
+  const updateTeamMember = (
+    index: number,
+    field: keyof TeamMember,
+    value: string
+  ) => {
     setRegistrationData((prev) => ({
       ...prev,
-      teamMembers: prev.teamMembers.map((member, i) => (i === index ? { ...member, [field]: value } : member)),
-    }))
-  }
+      teamMembers: prev.teamMembers.map((member, i) =>
+        i === index ? { ...member, [field]: value } : member
+      ),
+    }));
+  };
 
   const addTeamMember = () => {
     if (registrationData.teamMembers.length < 8) {
@@ -198,312 +232,382 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
         teamMembers: [
           ...prev.teamMembers,
           {
-            name: "",
-            email: "",
-            phone: "",
-            college: "",
-            year: "",
-            branch: "",
-            academic_year: "",
+            name: '',
+            email: '',
+            phone: '',
+            college: '',
+            year: '',
+            gender: '',
+            branch: '',
+            academic_year: '',
           },
         ],
-      }))
+      }));
     }
-  }
+  };
 
   const removeTeamMember = (index: number) => {
-    const minMembers = event?.team_size === "2_people" ? 2 : event?.team_size === "group_4" ? 4 : 1
+    const minMembers =
+      event?.team_size === '2_people'
+        ? 2
+        : event?.team_size === 'group_4'
+          ? 4
+          : 1;
     if (registrationData.teamMembers.length > minMembers) {
       setRegistrationData((prev) => ({
         ...prev,
         teamMembers: prev.teamMembers.filter((_, i) => i !== index),
-      }))
+      }));
     }
-  }
+  };
 
   const handleRegistration = async () => {
-    if (!event) return
+    if (!event) return;
 
     if (isRegistered) {
-      setErrorMessage("You are already registered for this event!")
-      setRegistrationStatus("error")
-      return
+      setErrorMessage('You are already registered for this event!');
+      setRegistrationStatus('error');
+      return;
     }
 
-    if (event.team_size === "solo") {
+    if (event.team_size === 'solo') {
       setRegistrationData((prev) => ({
         ...prev,
         teamMembers: [
           {
-            name: "",
-            email: "",
-            phone: "",
-            college: "",
-            year: "",
-            branch: "",
-            academic_year: "",
+            name: '',
+            email: '',
+            phone: '',
+            college: '',
+            year: '',
+            gender: '',
+            branch: '',
+            academic_year: '',
           },
         ],
-      }))
+      }));
     } else {
-      initializeTeamMembers()
+      initializeTeamMembers();
     }
 
-    setShowRegistrationDialog(true)
-  }
+    setShowRegistrationDialog(true);
+  };
 
   const submitRegistration = async () => {
-    if (!event) return
+    if (!event) return;
 
     try {
-      setRegistering(true)
-      setRegistrationStatus("idle")
-      setErrorMessage("")
-      setSuccessMessage("")
+      setRegistering(true);
+      setRegistrationStatus('idle');
+      setErrorMessage('');
+      setSuccessMessage('');
 
       // Validate required fields
-      if (event.team_size === "solo") {
-        const member = registrationData.teamMembers[0]
+      if (event.team_size === 'solo') {
+        const member = registrationData.teamMembers[0];
         if (!member.name || !member.email || !member.phone) {
-          throw new Error("Please fill in all required fields")
+          throw new Error('Please fill in all required fields');
         }
 
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(member.email)) {
-          throw new Error("Please enter a valid email address")
+          throw new Error('Please enter a valid email address');
         }
 
         // Check if already registered with this email
         const { data: existingReg } = await supabase
-          .from("event_registrations")
-          .select("id")
-          .eq("event_id", params.id)
-          .eq("registration_data->participant_details->email", member.email.toLowerCase())
-          .maybeSingle()
+          .from('event_registrations')
+          .select('id')
+          .eq('event_id', params.id)
+          .eq(
+            'registration_data->participant_details->email',
+            member.email.toLowerCase()
+          )
+          .maybeSingle();
 
         if (existingReg) {
-          throw new Error("This email address has already been used to register for this event")
+          throw new Error(
+            'This email address has already been used to register for this event'
+          );
         }
       } else {
         // Validate team data
         if (!registrationData.teamName) {
-          throw new Error("Please provide a team name")
+          throw new Error('Please provide a team name');
         }
 
         // Check team member emails
-        const emails = new Set()
+        const emails = new Set();
         for (let i = 0; i < registrationData.teamMembers.length; i++) {
-          const member = registrationData.teamMembers[i]
+          const member = registrationData.teamMembers[i];
           if (!member.name || !member.email) {
-            throw new Error(`Please fill in name and email for team member ${i + 1}`)
+            throw new Error(
+              `Please fill in name and email for team member ${i + 1}`
+            );
           }
 
           // Validate email format
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(member.email)) {
-            throw new Error(`Please enter a valid email address for team member ${i + 1}`)
+            throw new Error(
+              `Please enter a valid email address for team member ${i + 1}`
+            );
           }
 
-          const email = member.email.toLowerCase()
+          const email = member.email.toLowerCase();
           if (emails.has(email)) {
-            throw new Error("Each team member must have a unique email address")
+            throw new Error(
+              'Each team member must have a unique email address'
+            );
           }
-          emails.add(email)
+          emails.add(email);
 
           // Check if email already registered
           const { data: existingReg } = await supabase
-            .from("event_registrations")
-            .select("id")
-            .eq("event_id", params.id)
-            .or(`participant_details->email.eq.${email},team_members->email.cs.{${email}}`)
-            .maybeSingle()
+            .from('event_registrations')
+            .select('id')
+            .eq('event_id', params.id)
+            .or(
+              `participant_details->email.eq.${email},team_members->email.cs.{${email}}`
+            )
+            .maybeSingle();
 
           if (existingReg) {
-            throw new Error(`The email address ${member.email} has already been used to register for this event`)
+            throw new Error(
+              `The email address ${member.email} has already been used to register for this event`
+            );
           }
         }
       }
 
       // Check if event is still open and has capacity
       const { data: currentEvent, error: eventError } = await supabase
-        .from("events")
-        .select("current_participants, max_participants, registration_deadline")
-        .eq("id", params.id)
-        .single()
+        .from('events')
+        .select('current_participants, max_participants, registration_deadline')
+        .eq('id', params.id)
+        .single();
 
-      if (eventError) throw eventError
+      if (eventError) throw eventError;
 
-      const now = new Date()
-      const deadline = new Date(currentEvent.registration_deadline)
+      const now = new Date();
+      const deadline = new Date(currentEvent.registration_deadline);
       if (now > deadline) {
-        throw new Error("Registration deadline has passed")
+        throw new Error('Registration deadline has passed');
       }
 
-      if (currentEvent.max_participants && currentEvent.current_participants >= currentEvent.max_participants) {
-        throw new Error("Event is full")
+      if (
+        currentEvent.max_participants &&
+        currentEvent.current_participants >= currentEvent.max_participants
+      ) {
+        throw new Error('Event is full');
       }
 
       // Ensure user is logged in
       if (!user) {
-        throw new Error("You must be logged in to register for events")
+        throw new Error('You must be logged in to register for events');
       }
 
       // Create registration record
       const registrationPayload = {
         event_id: params.id,
         user_id: user.id,
-        team_name: event.team_size !== "solo" ? registrationData.teamName : null,
-        status: "registered",  // Using the correct enum value from database
+        team_name:
+          event.team_size !== 'solo' ? registrationData.teamName : null,
+        status: 'registered', // Using the correct enum value from database
         registration_data: {
           registration_type: event.team_size,
-          participant_details: event.team_size === "solo" ? {
-            name: registrationData.teamMembers[0].name.trim(),
-            email: registrationData.teamMembers[0].email.trim().toLowerCase(),
-            phone: registrationData.teamMembers[0].phone.trim(),
-            college: registrationData.teamMembers[0].college.trim(),
-            year: registrationData.teamMembers[0].year.trim(),
-            skills: registrationData.participantSkills?.trim(),
-            experience: registrationData.participantExperience?.trim(),
-          } : null,
-          team_members: event.team_size !== "solo"
-            ? registrationData.teamMembers.map(member => ({
-                name: member.name.trim(),
-                email: member.email.trim().toLowerCase(),
-                phone: member.phone?.trim(),
-                college: member.college?.trim(),
-                year: member.year?.trim(),
-                branch: member.branch?.trim(),
-              }))
-            : null,
+          participant_details:
+            event.team_size === 'solo'
+              ? {
+                  name: registrationData.teamMembers[0].name.trim(),
+                  email: registrationData.teamMembers[0].email
+                    .trim()
+                    .toLowerCase(),
+                  phone: registrationData.teamMembers[0].phone.trim(),
+                  college: registrationData.teamMembers[0].college.trim(),
+                  year: registrationData.teamMembers[0].year.trim(),
+                  gender: registrationData.teamMembers[0].gender.trim(),
+                  skills: registrationData.participantSkills?.trim(),
+                  experience: registrationData.participantExperience?.trim(),
+                }
+              : null,
+          team_members:
+            event.team_size !== 'solo'
+              ? registrationData.teamMembers.map((member) => ({
+                  name: member.name.trim(),
+                  email: member.email.trim().toLowerCase(),
+                  phone: member.phone?.trim(),
+                  college: member.college?.trim(),
+                  year: member.year?.trim(),
+                  branch: member.branch?.trim(),
+                  gender: member.gender?.trim(),
+                }))
+              : null,
           additional_info: {
             dietaryRestrictions: registrationData.dietaryRestrictions?.trim(),
             branch: registrationData.branch?.trim(),
-          }
+          },
         },
-      }
+      };
 
       // Insert the registration
       const { data: newRegistration, error: registrationError } = await supabase
-        .from("event_registrations")
+        .from('event_registrations')
         .insert(registrationPayload)
         .select()
-        .single()
+        .single();
 
       if (registrationError) {
-        throw new Error(registrationError.message || "Failed to save registration")
+        throw new Error(
+          registrationError.message || 'Failed to save registration'
+        );
       }
 
       // Update the participant count in the events table
       const { error: updateError } = await supabase
-        .from("events")
+        .from('events')
         .update({
-          current_participants: currentEvent.current_participants + (event.team_size === "solo" ? 1 : registrationData.teamMembers.length)
+          current_participants:
+            currentEvent.current_participants +
+            (event.team_size === 'solo'
+              ? 1
+              : registrationData.teamMembers.length),
         })
-        .eq("id", params.id)
+        .eq('id', params.id);
 
       if (registrationError) {
-        console.error("Registration error:", registrationError)
-        throw new Error(registrationError.message || "Failed to save registration")
+        console.error('Registration error:', registrationError);
+        throw new Error(
+          registrationError.message || 'Failed to save registration'
+        );
       }
 
       if (!newRegistration) {
-        throw new Error("Registration data not saved properly")
+        throw new Error('Registration data not saved properly');
       }
 
       // Log successful registration
-      console.log("Registration saved successfully")
+      console.log('Registration saved successfully');
 
       if (updateError) {
-        console.error("Failed to update participant count:", updateError)
+        console.error('Failed to update participant count:', updateError);
         // Don't throw here since registration was successful
       }
 
       // Update UI state
-      setRegistrationStatus("success")
-      setSuccessMessage("Registration completed successfully! You will receive a confirmation email shortly.")
-      setIsRegistered(true)
-      setShowRegistrationDialog(false)
+      setRegistrationStatus('success');
+      setSuccessMessage(
+        'Registration completed successfully! You will receive a confirmation email shortly.'
+      );
+      setIsRegistered(true);
+      setShowRegistrationDialog(false);
 
       // Refresh event data to show updated participant count
-      await fetchEventDetails()
+      await fetchEventDetails();
     } catch (error) {
-      console.error("Registration error:", error)
-      setRegistrationStatus("error")
-      setErrorMessage(error instanceof Error ? error.message : "Registration failed")
+      console.error('Registration error:', error);
+      setRegistrationStatus('error');
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Registration failed'
+      );
     } finally {
-      setRegistering(false)
+      setRegistering(false);
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
       hour12: true,
-    })
-  }
+    });
+  };
 
   const getDeadlineUrgency = (deadline: string) => {
-    const now = new Date()
-    const deadlineDate = new Date(deadline)
-    const diffTime = deadlineDate.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const now = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffTime = deadlineDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays <= 0) return { level: "expired", color: "text-red-600", text: "Registration Closed" }
-    if (diffDays <= 1) return { level: "critical", color: "text-red-600", text: "Closes Today!" }
-    if (diffDays <= 3) return { level: "high", color: "text-orange-600", text: `${diffDays} days left` }
-    if (diffDays <= 7) return { level: "medium", color: "text-yellow-600", text: `${diffDays} days left` }
-    return { level: "low", color: "text-green-600", text: `${diffDays} days left` }
-  }
+    if (diffDays <= 0)
+      return {
+        level: 'expired',
+        color: 'text-red-600',
+        text: 'Registration Closed',
+      };
+    if (diffDays <= 1)
+      return {
+        level: 'critical',
+        color: 'text-red-600',
+        text: 'Closes Today!',
+      };
+    if (diffDays <= 3)
+      return {
+        level: 'high',
+        color: 'text-orange-600',
+        text: `${diffDays} days left`,
+      };
+    if (diffDays <= 7)
+      return {
+        level: 'medium',
+        color: 'text-yellow-600',
+        text: `${diffDays} days left`,
+      };
+    return {
+      level: 'low',
+      color: 'text-green-600',
+      text: `${diffDays} days left`,
+    };
+  };
 
   const getModeIcon = (mode: string) => {
     switch (mode) {
-      case "online":
-        return <Globe className="h-5 w-5" />
-      case "offline":
-        return <MapPin className="h-5 w-5" />
-      case "hybrid":
-        return <Monitor className="h-5 w-5" />
+      case 'online':
+        return <Globe className="h-5 w-5" />;
+      case 'offline':
+        return <MapPin className="h-5 w-5" />;
+      case 'hybrid':
+        return <Monitor className="h-5 w-5" />;
       default:
-        return <MapPin className="h-5 w-5" />
+        return <MapPin className="h-5 w-5" />;
     }
-  }
+  };
 
   const getTeamSizeDisplay = (teamSize: string) => {
     switch (teamSize) {
-      case "solo":
-        return "Individual Participation"
-      case "2_people":
-        return "Team of 2 People"
-      case "group_4":
-        return "Team of 4 People"
+      case 'solo':
+        return 'Individual Participation';
+      case '2_people':
+        return 'Team of 2 People';
+      case 'group_4':
+        return 'Team of 4 People';
       default:
-        return "Individual Participation"
+        return 'Individual Participation';
     }
-  }
+  };
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case "beginner":
-        return "bg-green-100 text-green-800 border-green-200"
-      case "intermediate":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
-      case "advanced":
-        return "bg-red-100 text-red-800 border-red-200"
+      case 'beginner':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'intermediate':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'advanced':
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -530,7 +634,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!event) {
@@ -538,18 +642,22 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Event Not Found</h2>
-          <p className="text-gray-600 mb-6">The event you're looking for doesn't exist or has been removed.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Event Not Found
+          </h2>
+          <p className="text-gray-600 mb-6">
+            The event you're looking for doesn't exist or has been removed.
+          </p>
           <Link href="/dashboard/student/browse">
             <Button>Back to Browse Events</Button>
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  const urgency = getDeadlineUrgency(event.registration_deadline)
-  const isRegistrationOpen = urgency.level !== "expired"
+  const urgency = getDeadlineUrgency(event.registration_deadline);
+  const isRegistrationOpen = urgency.level !== 'expired';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -575,7 +683,8 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
               <div className="relative h-64 bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
                 <img
                   src={
-                    event.image_url || `/placeholder.svg?height=300&width=800&query=${encodeURIComponent(event.title)}`
+                    event.image_url ||
+                    `/placeholder.svg?height=300&width=800&query=${encodeURIComponent(event.title)}`
                   }
                   alt={event.title}
                   className="w-full h-full object-cover"
@@ -588,25 +697,35 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     </Badge>
                     <Badge className="bg-white/90 text-gray-800 font-semibold">
                       {getModeIcon(event.mode)}
-                      <span className="ml-1">{event.mode.charAt(0).toUpperCase() + event.mode.slice(1)}</span>
+                      <span className="ml-1">
+                        {event.mode.charAt(0).toUpperCase() +
+                          event.mode.slice(1)}
+                      </span>
                     </Badge>
                     {event.prize_pool && (
                       <Badge className="bg-yellow-500 text-white font-bold">
-                        <Trophy className="h-3 w-3 mr-1" />₹{event.prize_pool.toLocaleString()}
+                        <Trophy className="h-3 w-3 mr-1" />₹
+                        {event.prize_pool.toLocaleString()}
                       </Badge>
                     )}
                   </div>
-                  <h1 className="text-3xl font-bold text-white mb-2">{event.title}</h1>
+                  <h1 className="text-3xl font-bold text-white mb-2">
+                    {event.title}
+                  </h1>
                   {event.club && (
                     <div className="flex items-center text-white/90">
                       <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-sm font-bold">{event.club.name.charAt(0)}</span>
+                        <span className="text-sm font-bold">
+                          {event.club.name.charAt(0)}
+                        </span>
                       </div>
                       <div>
                         <div className="font-semibold">{event.club.name}</div>
                         <div className="flex items-center text-sm">
                           <Star className="h-3 w-3 mr-1 text-yellow-400 fill-current" />
-                          <span>{event.club.credibility_score?.toFixed(1) || "4.0"}</span>
+                          <span>
+                            {event.club.credibility_score?.toFixed(1) || '4.0'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -616,26 +735,45 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
             </div>
 
             {/* Event Details Tabs */}
-            <Tabs defaultValue="overview" className="bg-white rounded-2xl shadow-lg border border-gray-100">
+            <Tabs
+              defaultValue="overview"
+              className="bg-white rounded-2xl shadow-lg border border-gray-100"
+            >
               <TabsList className="w-full justify-start border-b border-gray-200 bg-transparent rounded-none p-0">
-                <TabsTrigger value="overview" className="px-6 py-4 font-semibold">
+                <TabsTrigger
+                  value="overview"
+                  className="px-6 py-4 font-semibold"
+                >
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="details" className="px-6 py-4 font-semibold">
+                <TabsTrigger
+                  value="details"
+                  className="px-6 py-4 font-semibold"
+                >
                   Details
                 </TabsTrigger>
-                <TabsTrigger value="requirements" className="px-6 py-4 font-semibold">
+                <TabsTrigger
+                  value="requirements"
+                  className="px-6 py-4 font-semibold"
+                >
                   Requirements
                 </TabsTrigger>
-                <TabsTrigger value="organizer" className="px-6 py-4 font-semibold">
+                <TabsTrigger
+                  value="organizer"
+                  className="px-6 py-4 font-semibold"
+                >
                   Organizer
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="p-8 space-y-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Event</h2>
-                  <p className="text-gray-700 leading-relaxed text-lg">{event.description}</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    About This Event
+                  </h2>
+                  <p className="text-gray-700 leading-relaxed text-lg">
+                    {event.description}
+                  </p>
                 </div>
 
                 {/* Key Information */}
@@ -649,21 +787,29 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
-                        <div className="font-semibold text-gray-900">Start Date & Time</div>
+                        <div className="font-semibold text-gray-900">
+                          Start Date & Time
+                        </div>
                         <div className="text-gray-600">
-                          {formatDate(event.start_date)} at {formatTime(event.start_date)}
+                          {formatDate(event.start_date)} at{' '}
+                          {formatTime(event.start_date)}
                         </div>
                       </div>
                       {event.end_date && (
                         <div>
-                          <div className="font-semibold text-gray-900">End Date & Time</div>
+                          <div className="font-semibold text-gray-900">
+                            End Date & Time
+                          </div>
                           <div className="text-gray-600">
-                            {formatDate(event.end_date)} at {formatTime(event.end_date)}
+                            {formatDate(event.end_date)} at{' '}
+                            {formatTime(event.end_date)}
                           </div>
                         </div>
                       )}
                       <div>
-                        <div className="font-semibold text-gray-900">Duration</div>
+                        <div className="font-semibold text-gray-900">
+                          Duration
+                        </div>
                         <div className="text-gray-600">{event.duration}</div>
                       </div>
                     </CardContent>
@@ -678,20 +824,33 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
-                        <div className="font-semibold text-gray-900">Team Size</div>
-                        <div className="text-gray-600">{getTeamSizeDisplay(event.team_size || "solo")}</div>
+                        <div className="font-semibold text-gray-900">
+                          Team Size
+                        </div>
+                        <div className="text-gray-600">
+                          {getTeamSizeDisplay(event.team_size || 'solo')}
+                        </div>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900">Difficulty Level</div>
-                        <Badge className={getLevelColor(event.level || "beginner")}>
-                          {(event.level || "beginner").charAt(0).toUpperCase() + (event.level || "beginner").slice(1)}
+                        <div className="font-semibold text-gray-900">
+                          Difficulty Level
+                        </div>
+                        <Badge
+                          className={getLevelColor(event.level || 'beginner')}
+                        >
+                          {(event.level || 'beginner').charAt(0).toUpperCase() +
+                            (event.level || 'beginner').slice(1)}
                         </Badge>
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900">Registered Participants</div>
+                        <div className="font-semibold text-gray-900">
+                          Registered Participants
+                        </div>
                         <div className="text-gray-600">
                           {event.current_participants}
-                          {event.max_participants && ` / ${event.max_participants}`} participants
+                          {event.max_participants &&
+                            ` / ${event.max_participants}`}{' '}
+                          participants
                         </div>
                       </div>
                     </CardContent>
@@ -701,10 +860,16 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                 {/* Tags */}
                 {event.tags && event.tags.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Tags
+                    </h3>
                     <div className="flex flex-wrap gap-2">
                       {event.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="px-3 py-1">
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="px-3 py-1"
+                        >
                           <Tag className="h-3 w-3 mr-1" />
                           {tag}
                         </Badge>
@@ -724,10 +889,18 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                       </h3>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="font-medium text-gray-900">
-                          {event.mode.charAt(0).toUpperCase() + event.mode.slice(1)} Event
+                          {event.mode.charAt(0).toUpperCase() +
+                            event.mode.slice(1)}{' '}
+                          Event
                         </div>
-                        {event.venue && <div className="text-gray-600 mt-1">{event.venue}</div>}
-                        <div className="text-gray-600 mt-1">{event.college}</div>
+                        {event.venue && (
+                          <div className="text-gray-600 mt-1">
+                            {event.venue}
+                          </div>
+                        )}
+                        <div className="text-gray-600 mt-1">
+                          {event.college}
+                        </div>
                       </div>
                     </div>
 
@@ -742,12 +915,18 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                             <div className="font-medium text-gray-900">
                               Prize Pool: ₹{event.prize_pool.toLocaleString()}
                             </div>
-                            <div className="text-gray-600 mt-1">Exciting prizes for winners!</div>
+                            <div className="text-gray-600 mt-1">
+                              Exciting prizes for winners!
+                            </div>
                           </div>
                         ) : (
                           <div>
-                            <div className="font-medium text-gray-900">Certificates & Recognition</div>
-                            <div className="text-gray-600 mt-1">All participants will receive certificates</div>
+                            <div className="font-medium text-gray-900">
+                              Certificates & Recognition
+                            </div>
+                            <div className="text-gray-600 mt-1">
+                              All participants will receive certificates
+                            </div>
                           </div>
                         )}
                       </div>
@@ -762,15 +941,23 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                       </h3>
                       <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Registration Deadline</span>
-                          <span className="font-medium text-gray-900">{formatDate(event.registration_deadline)}</span>
+                          <span className="text-gray-600">
+                            Registration Deadline
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            {formatDate(event.registration_deadline)}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Event Date</span>
-                          <span className="font-medium text-gray-900">{formatDate(event.start_date)}</span>
+                          <span className="font-medium text-gray-900">
+                            {formatDate(event.start_date)}
+                          </span>
                         </div>
                         <div className="pt-2 border-t border-gray-200">
-                          <div className={`font-semibold ${urgency.color}`}>{urgency.text}</div>
+                          <div className={`font-semibold ${urgency.color}`}>
+                            {urgency.text}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -787,7 +974,10 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Event Type</span>
-                          <Badge variant="outline">{event.type.charAt(0).toUpperCase() + event.type.slice(1)}</Badge>
+                          <Badge variant="outline">
+                            {event.type.charAt(0).toUpperCase() +
+                              event.type.slice(1)}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -822,9 +1012,12 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                   ) : (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                       <Zap className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                      <h3 className="font-semibold text-green-900 mb-2">No Special Requirements</h3>
+                      <h3 className="font-semibold text-green-900 mb-2">
+                        No Special Requirements
+                      </h3>
                       <p className="text-green-700">
-                        This event is open to everyone! Just bring your enthusiasm and willingness to learn.
+                        This event is open to everyone! Just bring your
+                        enthusiasm and willingness to learn.
                       </p>
                     </div>
                   )}
@@ -838,14 +1031,20 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <Badge className={`${getLevelColor(event.level || "beginner")} text-sm px-3 py-1`}>
-                          {(event.level || "beginner").charAt(0).toUpperCase() + (event.level || "beginner").slice(1)}{" "}
+                        <Badge
+                          className={`${getLevelColor(event.level || 'beginner')} text-sm px-3 py-1`}
+                        >
+                          {(event.level || 'beginner').charAt(0).toUpperCase() +
+                            (event.level || 'beginner').slice(1)}{' '}
                           Level
                         </Badge>
                         <p className="text-gray-600 mt-2">
-                          {event.level === "beginner" && "Perfect for newcomers and those just starting out."}
-                          {event.level === "intermediate" && "Suitable for those with some prior experience."}
-                          {event.level === "advanced" && "Designed for experienced participants seeking challenges."}
+                          {event.level === 'beginner' &&
+                            'Perfect for newcomers and those just starting out.'}
+                          {event.level === 'intermediate' &&
+                            'Suitable for those with some prior experience.'}
+                          {event.level === 'advanced' &&
+                            'Designed for experienced participants seeking challenges.'}
                         </p>
                       </CardContent>
                     </Card>
@@ -859,14 +1058,15 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                       </CardHeader>
                       <CardContent>
                         <div className="font-medium text-gray-900 mb-2">
-                          {getTeamSizeDisplay(event.team_size || "solo")}
+                          {getTeamSizeDisplay(event.team_size || 'solo')}
                         </div>
                         <p className="text-gray-600">
-                          {event.team_size === "solo" && "Individual participation - showcase your personal skills!"}
-                          {event.team_size === "2_people" &&
-                            "Partner up with a friend or colleague for this collaborative experience."}
-                          {event.team_size === "group_4+" &&
-                            "Form a team of 4 or more members to tackle this challenge together."}
+                          {event.team_size === 'solo' &&
+                            'Individual participation - showcase your personal skills!'}
+                          {event.team_size === '2_people' &&
+                            'Partner up with a friend or colleague for this collaborative experience.'}
+                          {event.team_size === 'group_4+' &&
+                            'Form a team of 4 or more members to tackle this challenge together.'}
                         </p>
                       </CardContent>
                     </Card>
@@ -877,7 +1077,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
               <TabsContent value="organizer" className="p-8">
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Event Organizer</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                      Event Organizer
+                    </h2>
                   </div>
 
                   {event.club ? (
@@ -889,7 +1091,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h3 className="text-xl font-bold text-gray-900">{event.club.name}</h3>
+                              <h3 className="text-xl font-bold text-gray-900">
+                                {event.club.name}
+                              </h3>
                               {event.club.is_verified && (
                                 <Badge className="bg-blue-100 text-blue-800">
                                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -897,7 +1101,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-gray-600 mb-3">{event.club.description}</p>
+                            <p className="text-gray-600 mb-3">
+                              {event.club.description}
+                            </p>
                             <div className="flex items-center space-x-6 text-sm text-gray-600">
                               <div className="flex items-center">
                                 <Users className="h-4 w-4 mr-1" />
@@ -905,11 +1111,16 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                               </div>
                               <div className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-1" />
-                                <span>{event.club.events_hosted_count} events hosted</span>
+                                <span>
+                                  {event.club.events_hosted_count} events hosted
+                                </span>
                               </div>
                               <div className="flex items-center">
                                 <Star className="h-4 w-4 mr-1 text-yellow-500" />
-                                <span>{event.club.credibility_score?.toFixed(1)} rating</span>
+                                <span>
+                                  {event.club.credibility_score?.toFixed(1)}{' '}
+                                  rating
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -923,8 +1134,12 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                           <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <Users className="h-8 w-8 text-gray-400" />
                           </div>
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Independent Event</h3>
-                          <p className="text-gray-600">This event is organized independently.</p>
+                          <h3 className="text-xl font-bold text-gray-900 mb-2">
+                            Independent Event
+                          </h3>
+                          <p className="text-gray-600">
+                            This event is organized independently.
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
@@ -934,7 +1149,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                   {(event.contact_info?.email || event.contact_info?.phone) && (
                     <Card className="border border-gray-200">
                       <CardHeader>
-                        <CardTitle className="text-lg">Contact Information</CardTitle>
+                        <CardTitle className="text-lg">
+                          Contact Information
+                        </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {event.contact_info.email && (
@@ -976,16 +1193,28 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                   {/* Price */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-3xl font-bold text-gray-900">
-                      {event.entry_fee > 0 ? `₹${event.entry_fee}` : "Free"}
+                      {event.entry_fee > 0 ? `₹${event.entry_fee}` : 'Free'}
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-red-500">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-red-500"
+                      >
                         <Heart className="h-5 w-5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-blue-500">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-blue-500"
+                      >
                         <Calendar className="h-5 w-5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-gray-600"
+                      >
                         <Share2 className="h-5 w-5" />
                       </Button>
                     </div>
@@ -993,8 +1222,10 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
 
                   {/* Registration Status */}
                   <div className="mb-4">
-                    <div className={`font-semibold ${urgency.color} flex items-center`}>
-                      {urgency.level === "expired" ? (
+                    <div
+                      className={`font-semibold ${urgency.color} flex items-center`}
+                    >
+                      {urgency.level === 'expired' ? (
                         <AlertTriangle className="h-4 w-4 mr-2" />
                       ) : (
                         <Clock className="h-4 w-4 mr-2" />
@@ -1004,16 +1235,17 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                   </div>
 
                   {/* Registration Status Messages */}
-                  {registrationStatus === "success" && (
+                  {registrationStatus === 'success' && (
                     <Alert className="mb-4 border-green-200 bg-green-50">
                       <CheckCircle className="h-4 w-4 text-green-600" />
                       <AlertDescription className="text-green-800">
-                        {successMessage || "Registration successful! You're all set for the event."}
+                        {successMessage ||
+                          "Registration successful! You're all set for the event."}
                       </AlertDescription>
                     </Alert>
                   )}
-                  
-                  {registrationStatus === "error" && (
+
+                  {registrationStatus === 'error' && (
                     <Alert className="mb-4 border-red-200 bg-red-50">
                       <AlertTriangle className="h-4 w-4 text-red-600" />
                       <AlertDescription className="text-red-800">
@@ -1027,7 +1259,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                       onClick={handleRegistration}
                       disabled={registering || isRegistered}
                       className={`w-full py-3 rounded-lg font-semibold text-base mb-4 ${
-                        isRegistered ? "bg-green-600 hover:bg-green-700" : "bg-indigo-600 hover:bg-indigo-700"
+                        isRegistered
+                          ? 'bg-green-600 hover:bg-green-700'
+                          : 'bg-indigo-600 hover:bg-indigo-700'
                       } text-white`}
                     >
                       {isRegistered ? (
@@ -1035,8 +1269,8 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                           <CheckCircle className="h-5 w-5 mr-2" />
                           Registered
                         </>
-                      ) : event.team_size === "solo" ? (
-                        "Register Now"
+                      ) : event.team_size === 'solo' ? (
+                        'Register Now'
                       ) : (
                         `Register Team`
                       )}
@@ -1056,7 +1290,8 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                       <span className="text-gray-600">Participants</span>
                       <span className="font-semibold text-gray-900">
                         {event.current_participants}
-                        {event.max_participants && ` / ${event.max_participants}`}
+                        {event.max_participants &&
+                          ` / ${event.max_participants}`}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -1066,7 +1301,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Team Size</span>
                       <span className="font-semibold text-gray-900">
-                        {getTeamSizeDisplay(event.team_size || "solo")}
+                        {getTeamSizeDisplay(event.team_size || 'solo')}
                       </span>
                     </div>
                   </div>
@@ -1102,40 +1337,51 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
         </div>
       </div>
 
-      <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
+      <Dialog
+        open={showRegistrationDialog}
+        onOpenChange={setShowRegistrationDialog}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center text-2xl">
               <User className="h-6 w-6 mr-2 text-indigo-600" />
-              {event?.team_size === "solo" ? "Register for Event" : "Team Registration"}
+              {event?.team_size === 'solo'
+                ? 'Register for Event'
+                : 'Team Registration'}
             </DialogTitle>
             <DialogDescription>
-              {event?.team_size === "solo"
-                ? "Fill in your details to register for this event"
-                : `Create your team of ${getTeamSizeDisplay(event?.team_size || "solo").toLowerCase()} and register`}
+              {event?.team_size === 'solo'
+                ? 'Fill in your details to register for this event'
+                : `Create your team of ${getTeamSizeDisplay(event?.team_size || 'solo').toLowerCase()} and register`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
             {/* Status Messages */}
-            {registrationStatus === "error" && (
+            {registrationStatus === 'error' && (
               <Alert className="border-red-200 bg-red-50">
                 <AlertTriangle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800">{errorMessage}</AlertDescription>
+                <AlertDescription className="text-red-800">
+                  {errorMessage}
+                </AlertDescription>
               </Alert>
             )}
 
-            {event?.team_size === "solo" ? (
+            {event?.team_size === 'solo' ? (
               // Solo Registration Form
               <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900 mb-4 text-lg">Personal Information</h3>
+                <h3 className="font-semibold text-gray-900 mb-4 text-lg">
+                  Personal Information
+                </h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">Full Name *</Label>
                     <Input
                       id="name"
-                      value={registrationData.teamMembers[0]?.name || ""}
-                      onChange={(e) => updateTeamMember(0, "name", e.target.value)}
+                      value={registrationData.teamMembers[0]?.name || ''}
+                      onChange={(e) =>
+                        updateTeamMember(0, 'name', e.target.value)
+                      }
                       placeholder="Enter your full name"
                       required
                     />
@@ -1145,8 +1391,10 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     <Input
                       id="email"
                       type="email"
-                      value={registrationData.teamMembers[0]?.email || ""}
-                      onChange={(e) => updateTeamMember(0, "email", e.target.value)}
+                      value={registrationData.teamMembers[0]?.email || ''}
+                      onChange={(e) =>
+                        updateTeamMember(0, 'email', e.target.value)
+                      }
                       placeholder="Enter your email"
                       required
                     />
@@ -1155,8 +1403,10 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     <Label htmlFor="phone">Phone Number *</Label>
                     <Input
                       id="phone"
-                      value={registrationData.teamMembers[0]?.phone || ""}
-                      onChange={(e) => updateTeamMember(0, "phone", e.target.value)}
+                      value={registrationData.teamMembers[0]?.phone || ''}
+                      onChange={(e) =>
+                        updateTeamMember(0, 'phone', e.target.value)
+                      }
                       placeholder="Enter your phone number"
                       required
                     />
@@ -1165,39 +1415,64 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                     <Label htmlFor="college">College/University</Label>
                     <Input
                       id="college"
-                      value={registrationData.teamMembers[0]?.college || ""}
-                      onChange={(e) => updateTeamMember(0, "college", e.target.value)}
+                      value={registrationData.teamMembers[0]?.college || ''}
+                      onChange={(e) =>
+                        updateTeamMember(0, 'college', e.target.value)
+                      }
                       placeholder="Enter your college"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="year">Year of Study</Label>
-                    <Input
-                      id="year"
-                      value={registrationData.teamMembers[0]?.year || ""}
-                      onChange={(e) => updateTeamMember(0, "year", e.target.value)}
-                      placeholder="e.g., 2nd Year, Final Year"
-                    />
+                    <Label htmlFor="year">Year of Study *</Label>
+                    <Select
+                      value={registrationData.teamMembers[0]?.year || ''}
+                      onValueChange={(value) =>
+                        updateTeamMember(0, 'year', value)
+                      }
+                    >
+                      <SelectTrigger id="year" className="w-full">
+                        <SelectValue placeholder="Select your year of study" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1st year">1st Year</SelectItem>
+                        <SelectItem value="2nd year">2nd Year</SelectItem>
+                        <SelectItem value="3rd year">3rd Year</SelectItem>
+                        <SelectItem value="4th year">4th Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="gender">Gender *</Label>
+                    <Select
+                      value={registrationData.teamMembers[0]?.gender || ''}
+                      onValueChange={(value) =>
+                        updateTeamMember(0, 'gender', value)
+                      }
+                    >
+                      <SelectTrigger id="gender" className="w-full">
+                        <SelectValue placeholder="Select your gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branch">Branch</Label>
                     <Input
                       id="branch"
                       value={registrationData.branch}
-                      onChange={(e) => setRegistrationData((prev) => ({ ...prev, branch: e.target.value }))}
+                      onChange={(e) =>
+                        setRegistrationData((prev) => ({
+                          ...prev,
+                          branch: e.target.value,
+                        }))
+                      }
                       placeholder="Your branch/department"
                     />
                   </div>
-                </div>
-                <div>
-                  <Label htmlFor="skills">Relevant Skills/Experience</Label>
-                  <Textarea
-                    id="skills"
-                    value={registrationData.participantSkills}
-                    onChange={(e) => setRegistrationData((prev) => ({ ...prev, participantSkills: e.target.value }))}
-                    placeholder="Describe your relevant skills or experience"
-                    rows={3}
-                  />
                 </div>
               </div>
             ) : (
@@ -1208,7 +1483,12 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                   <Input
                     id="teamName"
                     value={registrationData.teamName}
-                    onChange={(e) => setRegistrationData((prev) => ({ ...prev, teamName: e.target.value }))}
+                    onChange={(e) =>
+                      setRegistrationData((prev) => ({
+                        ...prev,
+                        teamName: e.target.value,
+                      }))
+                    }
                     placeholder="Enter your team name"
                     required
                   />
@@ -1216,7 +1496,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
 
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900 text-lg">Team Members</h3>
+                    <h3 className="font-semibold text-gray-900 text-lg">
+                      Team Members
+                    </h3>
                   </div>
 
                   <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -1224,7 +1506,7 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                       <Card key={index} className="border border-gray-200 p-4">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-medium text-gray-900">
-                            {index === 0 ? "Team Leader" : `Member ${index}`}
+                            {index === 0 ? 'Team Leader' : `Member ${index}`}
                           </h4>
                         </div>
                         <div className="grid md:grid-cols-2 gap-3">
@@ -1232,7 +1514,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                             <Label>Name *</Label>
                             <Input
                               value={member.name}
-                              onChange={(e) => updateTeamMember(index, "name", e.target.value)}
+                              onChange={(e) =>
+                                updateTeamMember(index, 'name', e.target.value)
+                              }
                               placeholder="Full name"
                               required
                             />
@@ -1242,7 +1526,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                             <Input
                               type="email"
                               value={member.email}
-                              onChange={(e) => updateTeamMember(index, "email", e.target.value)}
+                              onChange={(e) =>
+                                updateTeamMember(index, 'email', e.target.value)
+                              }
                               placeholder="Email address"
                               required
                             />
@@ -1251,7 +1537,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                             <Label>Phone</Label>
                             <Input
                               value={member.phone}
-                              onChange={(e) => updateTeamMember(index, "phone", e.target.value)}
+                              onChange={(e) =>
+                                updateTeamMember(index, 'phone', e.target.value)
+                              }
                               placeholder="Phone number"
                             />
                           </div>
@@ -1259,7 +1547,13 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                             <Label>College</Label>
                             <Input
                               value={member.college}
-                              onChange={(e) => updateTeamMember(index, "college", e.target.value)}
+                              onChange={(e) =>
+                                updateTeamMember(
+                                  index,
+                                  'college',
+                                  e.target.value
+                                )
+                              }
                               placeholder="College/University"
                             />
                           </div>
@@ -1267,17 +1561,60 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                             <Label>Branch/Department</Label>
                             <Input
                               value={member.branch}
-                              onChange={(e) => updateTeamMember(index, "branch", e.target.value)}
+                              onChange={(e) =>
+                                updateTeamMember(
+                                  index,
+                                  'branch',
+                                  e.target.value
+                                )
+                              }
                               placeholder="e.g., Computer Science"
                             />
                           </div>
                           <div>
-                            <Label>Year of Study</Label>
-                            <Input
+                            <Label>Year of Study *</Label>
+                            <Select
                               value={member.year}
-                              onChange={(e) => updateTeamMember(index, "year", e.target.value)}
-                              placeholder="e.g., 2nd Year, Final Year"
-                            />
+                              onValueChange={(value) =>
+                                updateTeamMember(index, 'year', value)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select year" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1st year">
+                                  1st Year
+                                </SelectItem>
+                                <SelectItem value="2nd year">
+                                  2nd Year
+                                </SelectItem>
+                                <SelectItem value="3rd year">
+                                  3rd Year
+                                </SelectItem>
+                                <SelectItem value="4th year">
+                                  4th Year
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Gender *</Label>
+                            <Select
+                              value={member.gender}
+                              onValueChange={(value) =>
+                                updateTeamMember(index, 'gender', value)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select gender" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="male">Male</SelectItem>
+                                <SelectItem value="female">Female</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       </Card>
@@ -1301,12 +1638,12 @@ export default function EventDetailsPage({ params }: { params: { id: string } })
                 disabled={registering}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700"
               >
-                {registering ? "Registering..." : "Complete Registration"}
+                {registering ? 'Registering...' : 'Complete Registration'}
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
